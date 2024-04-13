@@ -1,4 +1,4 @@
 name = "QuantumAcademy"
 uuid = "de5eeee4-b72e-4ae6-9bd2-877bdf3311db"
-authors = ["Paul Nemec <paul.nemec@tum.de>"]
+authors = ["Paul Nemec <paul.nemec@tum.de>", "Philip Schwinghammer <ge49wed@mytum.de>"]
 version = "0.1.0"
