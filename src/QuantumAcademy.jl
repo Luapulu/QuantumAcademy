@@ -3,7 +3,7 @@ module QuantumAcademy
 import Base
 
 using Base: Callable
-using LinearAlgebra: eigen
+using LinearAlgebra: eigen, norm
 
 export FinDiffHamiltonian, DenseEigenProp, wavefunction
 
@@ -82,7 +82,9 @@ function (prop::DenseEigenProp)(t::Real)
 end
 
 wavefunction(ψ, nlength, nwidth) = vec([
-    ψ(x, y) for x in range(0, 1; length=nlength), y in range(0, 1; length=nwidth)
-])
+    ψ(x, y) for x in range(1, nlength; length=nlength), y in range(1, nwidth; length=nwidth)
+])/norm(vec([
+    ψ(x, y) for x in range(1, nlength; length=nlength), y in range(1, nwidth; length=nwidth)
+]))
 
 end # module QuantumAcademy
