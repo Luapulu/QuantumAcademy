@@ -3,7 +3,7 @@ module QuantumAcademy
 import Base
 
 using Base: Callable
-using LinearAlgebra: eigen, norm
+using LinearAlgebra: eigen, norm, normalize!
 
 export FinDiffHamiltonian, DenseEigenProp, wavefunction
 
@@ -43,12 +43,12 @@ function Base.getindex(H::FinDiffHamiltonian{T}, i::Int, j::Int) where T
 
     if ix == jx
         if iy == jy
-            Vij = H.potential(T((ix-1) // (H.nlength - 1)), T((iy-1) // (H.nwidth - 1)))
+            Vij = H.potential(T((ix-1) // H.nlength), T((iy-1) // H.nwidth))
             return (T(H.nlength) / H.length)^2 + (T(H.nwidth) / H.width)^2 + Vij
-        elseif abs(iy - jy) == 1 || abs(iy - jy) == H.nlength - 1
+        elseif abs(iy - jy) == 1 || abs(iy - jy) == H.nwidth - 1
             return -(T(H.nwidth) / H.width)^2 / 2
         end
-    elseif iy == jy && (abs(ix - jx) == 1 || abs(ix - jx) == H.nwidth - 1)
+    elseif iy == jy && (abs(ix - jx) == 1 || abs(ix - jx) == H.nlength - 1)
         return -(T(H.nlength) / H.length)^2 / 2
     end
 
@@ -81,10 +81,12 @@ function (prop::DenseEigenProp)(t::Real)
     prop.scratch * prop.vectors'
 end
 
-wavefunction(ψ, nlength, nwidth) = vec([
-    ψ(x, y) for x in range(1, nlength; length=nlength), y in range(1, nwidth; length=nwidth)
-])/norm(vec([
-    ψ(x, y) for x in range(1, nlength; length=nlength), y in range(1, nwidth; length=nwidth)
-]))
+function wavefunction(ψ, nlength, nwidth; normalise=true)
+    rx = range(0; step=1/nlength, length=nlength)
+    ry = range(0;  step=1/nwidth,  length=nwidth)
+    ψ = vec([ψ(x, y) for x in rx, y in ry])
+    normalise && normalize!(ψ)
+    return ψ
+end
 
 end # module QuantumAcademy
