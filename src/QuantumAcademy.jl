@@ -17,8 +17,8 @@ end
 
 function FinDiffHamiltonian{T}(
     potential::F,
-    length::T,
-    width::T,
+    length::Real,
+    width::Real,
     nlength::Int,
     nwidth::Int
 ) where {T <: Real, F <: Callable}
@@ -71,9 +71,9 @@ function DenseEigenProp(hamiltonian::TH) where TH
     DenseEigenProp{eltype(TH)}(hamiltonian)
 end
 
-function (prop::DenseEigenProp)(t::Real)
+function (prop::DenseEigenProp{T})(t::Real) where T
     for j in axes(prop.hamiltonian, 1)
-        c = cis(-prop.values[j] * t)
+        c = cis(-prop.values[j] * T(t))
         for i in axes(prop.hamiltonian, 1)
             prop.scratch[i, j] = c * prop.vectors[i, j]
         end
@@ -84,9 +84,9 @@ end
 function wavefunction(ψ, nlength, nwidth; normalise=true)
     rx = range(0; step=1/nlength, length=nlength)
     ry = range(0;  step=1/nwidth,  length=nwidth)
-    ψ = vec([ψ(x, y) for x in rx, y in ry])
-    normalise && normalize!(ψ)
-    return ψ
+    v = vec([ψ(x, y) for x in rx, y in ry])
+    normalise && normalize!(v)
+    return v
 end
 
 end # module QuantumAcademy
