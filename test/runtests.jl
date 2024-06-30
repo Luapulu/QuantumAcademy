@@ -21,7 +21,7 @@ using LinearAlgebra
         @test H.nlength isa Int
         @test H.nwidth isa Int
 
-        @test eltype(H) == Float64
+        @test eltype(H) == Complex
         @test size(H) == (NL * NW, NL * NW)
 
         ial2 = (NL / L)^2
@@ -33,7 +33,7 @@ using LinearAlgebra
 
         U = DenseEigenProp(H)
 
-        @test U(0) ≈ Matrix(UniformScaling(1), NL * NW, NL * NW)
+        @test U(0) ≈ Matrix(UniformScaling{ComplexF64}(1), NL * NW, NL * NW)
 
         nx = 2
         ny = 3
@@ -48,7 +48,7 @@ using LinearAlgebra
         ψtest1 = cis(-t1 * E) .* ψ0
         ψtest2 = cis(Hermitian(-t1 * H)) * ψ0
 
-        @test U(t1)' * U(t1) ≈ Matrix(UniformScaling(1), NL * NW, NL * NW)
+        @test U(t1)' * U(t1) ≈ Matrix(UniformScaling{ComplexF64}(1), NL * NW, NL * NW)
 
         @test abs(norm(ψ1) - 1) < 1e-12
         @test abs(dot(ψ0, ψ1) - cis(-t1 * E)) < 1e-12
@@ -66,5 +66,9 @@ using LinearAlgebra
         @test maximum(abs, H * ψ0 .- E * ψ0) < 1e-12
         @test maximum(abs, ψ1 .- ψtest1) < 1e-12
         @test maximum(abs, ψ1 .- ψtest2) < 1e-12
+
+        H2 = FinDiffHamiltonian{Float64}(V, L, W, NL, NW, kpointx=0.1, kpointy=0.1)
+        @test  eltype(H2) == Complex
+        @show H2[1:3, 1:3]
     end
 end

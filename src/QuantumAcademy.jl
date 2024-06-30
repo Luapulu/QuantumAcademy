@@ -3,11 +3,11 @@ module QuantumAcademy
 import Base
 
 using Base: Callable
-using LinearAlgebra: eigen, norm, normalize!
+using LinearAlgebra
 
 export FinDiffHamiltonian, DenseEigenProp, wavefunction
 
-struct FinDiffHamiltonian{T <: Real, F <: Callable} <: AbstractMatrix{T}
+struct FinDiffHamiltonian{T <: Real, F <: Callable} <: AbstractMatrix{Complex}
     potential::F
     length::T
     width::T
@@ -67,12 +67,12 @@ struct DenseEigenProp{T <: Real, TH}
 end
 
 function DenseEigenProp{T}(hamiltonian::TH) where {T <: Real, TH}
-    vals, vecs = eigen(convert(Matrix{T}, hamiltonian); sortby=nothing)
+    vals, vecs = eigen(convert(Matrix{Complex}, hamiltonian); sortby=nothing)
     DenseEigenProp{T, TH}(hamiltonian, vals, vecs, similar(vecs))
 end
 
 function DenseEigenProp(hamiltonian::TH) where TH
-    DenseEigenProp{eltype(TH)}(hamiltonian)
+    DenseEigenProp{Real}(hamiltonian)
 end
 
 function (prop::DenseEigenProp{T})(t::Real) where T
@@ -95,10 +95,10 @@ end
 
 function calculate_bandstructure(V, L, W, NL, NW, path)
     #This function serves to calculate the band structure of the cell. The basic assumption is that the periodic boundary conditions are representative of an infinite perfect crystal, so the Hamiltonian can be rewritten as one for Bloch functions. We'll use the existing (finite difference) numerical implementation of the Hamiltonian, and only add the option to specify the k-point. The Hamiltonian then must be diagonalised at each k-point (So, very expensive!), and this gives us the energy levels at that k-point. Then simply return a list of energy eigenvalues for every k-point in path. Note that the eigenvectors are not the true wavefunctions, but the Bloch-functions.
-    energies = Array{Float64}(undef, NL*NW, size(path,2))
-    for i in 1:size(path,2)
-        H = FinDiffHamiltonian{Float64}(V, L, W, NL, NW, path[1,i], path[2,i])
-        energies[:,i] = eigvals(convert(Hermitian{T}, hamiltonian))
+    energies = Array{Float64}(undef, NL*NW, size(path,1))
+    for i in 1:size(path,1)
+        H = FinDiffHamiltonian{Float64}(V, L, W, NL, NW; kpointx = path[i,1], kpointy =path[i,2])
+        energies[:,i] = eigvals(H)
     end
     return energies
 end
