@@ -1,15 +1,18 @@
-using Test, QuantumAcademy
+using QuantumAcademy
+using Test
 using Unitful, UnitfulAtomic
-using LinearAlgebra: UniformScaling
+using LinearAlgebra
 
 @testset "PeriodicFinDiffHamiltonian" begin
     @testset "Constant Potential" begin
         V(x, y) = 5.0
+        V0 = V(0, 0)
+
+        # x-coordinate is first coordinate
+        NL = 8
+        NW = 16
         L = austrip(100u"nm")
         W = austrip(200u"nm")
-
-        NL = 6
-        NW = 4
 
         H = FinDiffHamiltonian{Float64}(V, L, W, NL, NW)
 
@@ -18,33 +21,54 @@ using LinearAlgebra: UniformScaling
         @test H.nlength isa Int
         @test H.nwidth isa Int
 
-        @test eltype(H) == Float64
+        @test eltype(H) == Complex
         @test size(H) == (NL * NW, NL * NW)
 
         ial2 = (NL / L)^2
         iaw2 = (NW / W)^2
         @test H[1:3, 1:3] ≈ [
-            5+ial2+iaw2      -ial2/2            0;
-            -ial2/2      5+ial2+iaw2      -ial2/2;
-                      0      -ial2/2  5+ial2+iaw2]
+            V0+ial2+iaw2       -ial2/2             0;
+                 -ial2/2  V0+ial2+iaw2       -ial2/2;
+                       0       -ial2/2  V0+ial2+iaw2]
 
         U = DenseEigenProp(H)
 
-        @test U(0) ≈ Matrix(UniformScaling(1), NL * NW, NL * NW)
+        @test U(0) ≈ Matrix(UniformScaling{ComplexF64}(1), NL * NW, NL * NW)
 
-        nx = 5
-        ny = 7
-        ψ0 = wavefunction((x, y) -> cispi(2 * nx * x) * cispi(2 * ny * y), NL, NW)
-        t1 = austrip(100u"ns")
+        nx = 2
+        ny = 3
+        ψ0 = wavefunction((x, y) -> cospi(2*x*nx + 2*y*ny), NL, NW)
+        E = 2(sinpi(nx/NL)^2*(NL/L)^2 + sinpi(ny/NW)^2*(NW/W)^2) + V0
 
-        ψtest1 = cis( t1 * (
-            -5.0 +
-            -2 * nx^2 / L^2 * sinpi(2*nx/NL)^2 +
-            -2 * ny^2 / W^2 * sinpi(2*ny/NW)^2
-        )) .* ψ0
+        @test abs(norm(ψ0) - 1) < 1e-12
 
-        @show maxerr = maximum(abs2, U(t1) * ψ0 - ψtest1)
-        @show abs2.(U(t1) * ψ0 - ψtest1)
-        @test U(t1) * ψ0 ≈ ψtest1
+        t1 = 231.7
+
+        ψ1 = U(t1) * ψ0
+        ψtest1 = cis(-t1 * E) .* ψ0
+        ψtest2 = cis(Hermitian(-t1 * H)) * ψ0
+
+        @test U(t1)' * U(t1) ≈ Matrix(UniformScaling{ComplexF64}(1), NL * NW, NL * NW)
+
+        @test abs(norm(ψ1) - 1) < 1e-12
+        @test abs(dot(ψ0, ψ1) - cis(-t1 * E)) < 1e-12
+        @test abs(dot(ψ0, ψtest2) - cis(-t1 * E)) < 1e-12
+
+        @test maximum(abs, U(2π / E) * ψ0 .- ψ0) < 1e-12
+        @test maximum(abs, U(π / E) * ψ0 .+ ψ0) < 1e-12
+
+        # Energy
+        @test abs(dot(ψ0, H, ψ0) / dot(ψ0, ψ0) - E) < 1e-12
+        @test abs(dot(ψ1, H, ψ1) - dot(ψ0, H, ψ0)) < 1e-12
+        @test abs(dot(ψtest1, H, ψtest1) - dot(ψ0, H, ψ0)) < 1e-12
+        @test abs(dot(ψtest2, H, ψtest2) - dot(ψ0, H, ψ0)) < 1e-12
+
+        @test maximum(abs, H * ψ0 .- E * ψ0) < 1e-12
+        @test maximum(abs, ψ1 .- ψtest1) < 1e-12
+        @test maximum(abs, ψ1 .- ψtest2) < 1e-12
+
+        H2 = FinDiffHamiltonian{Float64}(V, L, W, NL, NW, kpointx=0.1, kpointy=0.1)
+        @test  eltype(H2) == Complex
+        @show H2[1:3, 1:3]
     end
 end
