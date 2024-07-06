@@ -22,7 +22,13 @@ function V2(x, y)
     zero(x)
 end
 
-heatmap([V2(x, y) for x in 0:0.01:0.99, y in 0:0.01:0.99])
+function V3(x, y)
+    r = 0.07
+    h = 10
+    oftype(x,h/(sqrt(0.001 + (x-0.5)^2+(y-0.5)^2)))
+end
+
+heatmap([V3(x, y) for x in 0:0.01:0.99, y in 0:0.01:0.99])
 
 NL = 60
 NW = 60
@@ -30,7 +36,7 @@ NW = 60
 L = 500.0 |> Float32
 W = 500.0 |> Float32
 
-H = FinDiffHamiltonian{Float32}(V2, L, W, NL, NW)
+H = FinDiffHamiltonian{Float64}(V3, L, W, NL, NW)
 
 @time U = DenseEigenProp(H)
 
@@ -56,13 +62,13 @@ hidedecorations!(ax)
 hidespines!(ax)
 
 Vxs = range(0; step=1/250, length=250)
-Vs = [V2(x, y) for x in Vxs, y in Vxs]
+Vs = [V3(x, y) for x in Vxs, y in Vxs]
 contour!(ax, Vxs, Vxs, Vs; color=:white, levels=1:1)
 
 fig
 
 # animation settings
-nframes = 20*10
+nframes = 20*70
 framerate = 20
 
 ψs = accumulate(1:nframes; init=ψ0) do x, _
