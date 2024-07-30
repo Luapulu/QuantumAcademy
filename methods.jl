@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.40
+# v0.19.45
 
 using Markdown
 using InteractiveUtils
@@ -105,6 +105,9 @@ end
 # ╔═╡ c23f8ec1-694a-473e-8486-f854aaadcc62
 const FDH = FinDiffHamiltonian
 
+# ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
+Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
+
 # ╔═╡ f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
 testxl, testyl = (3.5, 8.0)
 
@@ -113,9 +116,6 @@ testV(x, y) = sinpi(4x) * cospi(2*y)
 
 # ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
 testH = FinDiffHamiltonian{Periodic}(testV, testxl, testyl, testnx, testny)
-
-# ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
-Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
 
 # ╔═╡ 50bf1130-d60d-40d4-aea0-024af72a69bd
 # non-allocating version of Base reshape.
@@ -206,6 +206,9 @@ md"### Finite Differences Hamiltonian"
 
 # ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
 @test testH * testv ≈ Matrix(testH) * testv
+
+# ╔═╡ 2b9dce1b-22be-4448-9035-2d6804ddd4c5
+@show typeof(testH)
 
 # ╔═╡ 5133587f-265a-40a7-8d5d-08d28ccab7a7
 LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
@@ -354,7 +357,7 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.4"
+julia_version = "1.10.2"
 manifest_format = "2.0"
 project_hash = "3e76eb8f10bd0cb493025ff8c2a5c6e0894d9750"
 
@@ -519,7 +522,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.1+0"
+version = "1.1.0+0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -1886,11 +1889,12 @@ version = "3.5.0+0"
 # ╠═98600be8-5246-41b6-8100-b221e76ee818
 # ╠═fa349d2c-4db0-4293-a956-91d9cbe686b4
 # ╠═2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
+# ╠═2b9dce1b-22be-4448-9035-2d6804ddd4c5
 # ╠═5133587f-265a-40a7-8d5d-08d28ccab7a7
 # ╠═78553187-2839-4afd-b2aa-f500a2a87b20
 # ╠═c42390d6-0a93-438e-b8b1-bdaf13078a8c
 # ╠═5e6fb2f7-ba1c-4872-b0ca-a0f120d6eaed
-# ╠═65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
+# ╟─65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
 # ╠═4a41cf38-7259-4316-be29-703ea0e3101a
 # ╟─a1c8fa54-57d4-4ae1-b775-8522b8c2090d
 # ╠═b9ea4c05-5018-4421-b43b-c1bf43ecee32
