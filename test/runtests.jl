@@ -72,3 +72,28 @@ using LinearAlgebra
         @show H2[1:3, 1:3]
     end
 end
+
+@testset "Molecular_Dynamics" begin
+    
+    function ionic_potential(ionx,iony,(x,y),scale)
+        return scale/sqrt((ionx-x)^2 + (iony - y)^2)
+    end
+
+    NL = 8
+    NW = 16
+    L = austrip(100u"nm")
+    W = austrip(200u"nm")
+
+    initial_positions = [(0.1, 0.1), (0.2,0.2), (0.3,0.3)]
+    initial_velocities = [(0.1, 0.1), (-0.1,-0.1), (0.3,0.3)]
+    scales = [[0.01],[0.01],[0.01]]
+    num_electrons = 3
+
+    Structure = Molecular_Structure(L,W,initial_positions, initial_velocities, ionic_potential, scales,num_electrons)
+    @test Structure.length isa Float64
+    @test Structure.width isa Float64
+    Structuredeltat = QuantumAcademy.propagate(Structure, 0.001, NL, NW)
+    @show sum(force_field(Structure)(x/NL*L,y/NW*W) for x in 1:NL for y in 1:NW)
+    @show ionic_force(Structure)
+
+end

@@ -1,6 +1,5 @@
 ### A Pluto.jl notebook ###
-
-# v0.19.40
+# v0.19.45
 
 using Markdown
 using InteractiveUtils
@@ -15,342 +14,331 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ e22afb18-acbe-49ec-8b0f-0d5d311b9e09
-begin
-	import LinearAlgebra
-	using LinearAlgebra
-end
-
-# ╔═╡ f49b5d6e-464f-49d0-a3f2-1af2084d6dc2
-using PlutoTest
-
-# ╔═╡ 30a856d7-01f1-411a-ab26-589dfbed9a73
-using PlutoUI: Slider
-
-# ╔═╡ 52aaf95c-818a-495b-86c3-d1cc73f60033
-using Base: Callable
-
-# ╔═╡ edbc5861-96b0-4d29-b158-f60f82c77f37
-using KrylovKit
-
-# ╔═╡ 896a6291-0027-4849-85cf-43e05082e5a8
+# ╔═╡ 53da5634-a69c-4285-ac26-314b5e696656
 using GLMakie
 
-# ╔═╡ dcbacb58-a77d-4ec2-aa10-bf6b72d5f33e
-import Base
+# ╔═╡ 17fcdcf0-67d2-41ba-89ca-e8427e829b2f
+using PlutoUI
 
-# ╔═╡ 51954bdb-3cd7-428e-a7ad-7a02be2f06b4
-function wavefunction(ψ, nx, ny; normalise=true)
-    rx = range(0; step=1/nx, length=nx)
-    ry = range(0;  step=1/ny,  length=ny)
-    mat = [ψ(x, y) for x in rx, y in ry]
-    normalise && normalize!(mat)
-    return mat
+# ╔═╡ e7000762-01f1-41fc-9847-9da1b4c642fe
+using LinearAlgebra
+
+# ╔═╡ d38ebcd4-e581-41a3-a741-a4412ebf1867
+md"
+# Axioms of Quantum Mechanics
+
+Quantum Mechanics is built on 4 axioms (assumptions). These are well-verified by experiment, and took scientists a long time to discover and understand. In this notebook, our goal is to 
+1. Learn what the 4 axioms of Quantum Mechanics are
+2. Understand what they mean
+3. Apply them to a simple model system: The Stern-Gerlach experiment
+
+## The first Axiom: States are vectors
+
+We can represent the state of a Quantum system as a vector in a Vectorspace. These vectors are always normalised, so they have length 1. One example of this is the state of a single spin, which can be visualized as an arrow pointing either up or down. 
+"
+
+
+# ╔═╡ 29bfbd20-b307-4ae6-a2b2-ad4c556c4479
+Spinstate = Float64[1,0]#We initialize a vector with two entries. The state [1,0] will correspond to spin up, and [0,1] to spin down. 
+
+# ╔═╡ 8e2bff72-577d-4069-a55d-33330e45ce73
+md"## The second Axiom: Observables are Hermitian Matrices
+
+An observeable is a physical quantity that we can measure. Examples include the energy, the momentum, the position and the spin of a particle. Each such observeable can be represented by a hermitian matrix, which acts on the state vector. In our example of looking at spin states, one example would be the spin of the particle along the z axis, i.e. whether the spin is pointing up (1) or down (-1). This is represented by the matrix:"
+
+# ╔═╡ 9bade9d9-2301-4f36-8809-344873f8630c
+σ_z = Float64[1 0; 0 -1]
+
+# ╔═╡ 653e636b-5790-452c-83b2-194609bb42af
+σ_z * Spinstate #Applying the spin-operator to the spin-state returns the same state. Try changing the spin state to [0,1]!
+
+# ╔═╡ ba383896-1d2a-43a0-851b-4114891645be
+md"The number that the state is multiplied by when the operator is applied is called an eigenvalue. What are the eigenvalues of $σ_z$? What happens when you apply the operator to a state that is not [1,0] or [0,1]?"
+
+# ╔═╡ 2af78c44-2d26-486d-beb4-e6f1c425b393
+md"We can imagine other matrices acting on the spin-state. These correspond to the spin in x-direction and y direction. The matrices are:"
+
+# ╔═╡ d8cc41e8-fe7b-43e7-8123-359eb32c7380
+σ_x = Float64[0 1; 1 0]
+
+# ╔═╡ e8cd222b-97f7-42d6-834b-c80621a76a2f
+σ_y = ComplexF64[0 -im; im 0]
+
+# ╔═╡ eb131edf-0d88-45ad-b72d-b887453838f1
+md"Try what happens when you apply these matrices to the spin states [1,0] and [0,1]! 
+
+This is because [1,0] and [0,1] are eigenstates of $σ_z$, but not of $σ_x$ or $σ_y$. The operator $σ_z$ asks the question: Is the spin up (returns 1 times the vector) or is it down (returns -1 times the vector). $σ_x$ and $σ_y$ ask whether the spin points forward or backward, and left or right respectively. So when given a vector pointing up or down, they don't give a simple answer. 
+
+Which vectors are eigenstates of $σ_x$ and $σ_y$?"
+
+# ╔═╡ 63dbb47c-022b-468a-be97-7b2e01c7cffd
+eigvecs(σ_x)
+
+# ╔═╡ 456082fa-42b6-4776-9788-55c2c0547025
+md"To convince ourselves, that these are truly the eigenvectors of $σ_x$ we see what happens when we apply $σ_x$:"
+
+# ╔═╡ ec6e42ea-bb49-4d5d-85b2-066855618e08
+σ_x * eigvecs(σ_x)[:,2]#Here we apply σ_x to the second eigenvector. Try what happens when you swap σ_x for σ_y and try the different eigenstates. 
+
+# ╔═╡ 89c52494-8f14-41a8-8211-6ecb591b682a
+md"What are the eigenvalues of $σ_x$ and $σ_y$?"
+
+# ╔═╡ ec85de5e-8e33-4bde-8634-3c1e201127d9
+eigvals(σ_z)
+
+# ╔═╡ c772a479-ffe1-4478-89ba-1edb829feb15
+md"### Optional Exercise: 3-level system
+
+Imagine a system with a spin that can not just be up (1) or down (-1) but also neutral (0) along the z-axis. How would you write the eigenstates corresponding to these states, and which matrix would you use to represent the observeable of the spin along this axis?"
+
+# ╔═╡ 8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
+md"## The third axiom: Measurements
+
+Now that we have defined our state, and what we can measure for that state, the next question is what the result of a measurement will be. In the case of a spin-state [1, 0], if we measure the spin along the z-axis, we will of course get 1 as a result. Likewise, for [0,1], the result will be -1. 
+
+However, if we try to measure the spin along the x-axis, what will the result be?"
+
+# ╔═╡ f908f827-49a2-4433-b4d6-846aeb7ea355
+md"**The measurement of an observeable will ALWAYS return one of the eigenvalues of the operator, with a probability given by the squared norm of the scalar product of the state with the corresponding eigenstate of the system**"
+
+# ╔═╡ 59e3a5b5-01b1-4a97-bad8-527f1f296d61
+dot(Float64[1,0], Float64[1,0]) #This calculates the scalar product of two vectors.
+
+# ╔═╡ c8602d92-88cd-4c98-b8c3-47575247e01a
+function probability(vec1, vec2)#Write a function which takes two vectors, and returns the squared norm of the scalar product. 
+	return norm(dot(vec1,vec2))^2 
 end
 
-# ╔═╡ 504fa869-0faa-4f0c-943a-94dd1b57757b
-testnx, testny = (3, 7)
+# ╔═╡ 4fc67d42-cbaf-4be3-9bc3-3a855734857d
+probability([1,0], [0,1])#Test out what happens for different vectors.
 
-# ╔═╡ e6a95c73-cc53-4323-a033-afb10b5511c3
-testnn = testnx * testny
+# ╔═╡ 6b6a2445-16dd-485c-985b-8edacfacfe4e
+md"**Once the measurement has been performed, the state of the system will be the eigenstate belonging to the eigenvalue that was returned by the measurement**"
 
-# ╔═╡ 44773e3c-37e1-4c1f-a859-c20943edd5f2
-testv = randn(testnn)
-
-# ╔═╡ 989bbaf8-f3e1-4c0e-941b-25480bbcb272
-testwf = wavefunction(testnx, testny) do x, y
-	cospi(4x) * sinpi(2y)
+# ╔═╡ 7331fca3-7713-4e97-b442-14266d98b9c4
+function perform_measurement_Z(state)#This function takes a state and an operator, and simulates performing a measurement of the spin in z-direction. It returns the state after the measurement was performed. 
+	overlap = probability(state, [1,0])
+	if rand() > overlap
+		return [0,1]
+	else
+		return [1,0]
+	end
 end
 
-# ╔═╡ e4abdbe5-9da6-4454-9817-d97cbc471c93
-begin
-	abstract type BoundaryCondition end
-	struct Periodic <: BoundaryCondition end
-	struct Box <: BoundaryCondition end
+# ╔═╡ 1b109de1-5d4b-49b1-8c0b-61ab0ae2367d
+perform_measurement_Z(eigvecs(σ_x)[:,2])
+
+# ╔═╡ 2f4bd64a-737b-4478-89ff-84a5ff5ecac7
+md"We can see that, for example, when using the eigenvectors of the spin in x-direction, the chance of measuring either up or down is exactly one half. Therefore, on average, the outcome of the measurement will be 0. This average over many measurements is called the expectation value, and is calculated as the scalar product of the vector with itself after the operator was applied."
+
+# ╔═╡ 9a790930-9dc4-47a0-bf62-1ad65f68887d
+function expectation_value_Z(state)#Calculates the expectation value for measuring the spin along the z-axis for a given state
+	return dot(state, σ_z * state)
 end
 
-# ╔═╡ 9e7c66f3-a2f2-4470-bd7b-651963a8ad77
-begin
-	struct FinDiffHamiltonian{
-	    BC <: BoundaryCondition,
-	    T <: Real,
-	    F <: Callable
-	} <: AbstractMatrix{T}
-	    V::F
-	    xlen::T
-	    ylen::T
-	    nx::Int
-	    ny::Int
-		function FinDiffHamiltonian{BC, T, F}(V, xlen, ylen, nx, ny) where {
-			BC <: BoundaryCondition, T <: Real, F <: Callable
-		}
-			nx < 3 && throw(ArgumentError("nx=$nx must not be smaller than 3"))
-			ny < 3 && throw(ArgumentError("ny=$ny must not be smaller than 3"))
-			new{BC, T, F}(V, xlen, ylen, nx, ny)
+# ╔═╡ 6ea47032-81d9-483e-aaec-e20079fb8f22
+expectation_value_Z(eigvecs(σ_x)[:,2])
+
+# ╔═╡ 0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
+md"In order to verify that this is the case, we try performing many measurements, and count how often each result appears."
+
+# ╔═╡ 69cb2496-d536-4687-9753-38fbbaeceab1
+function perform_many_measurements(number_of_measurements, initial_state)
+	up = 0.0
+	down = 0.0
+	for i in number_of_measurements:-1:1
+		if expectation_value_Z(perform_measurement_Z(initial_state)) > 0
+			up += 1
+		else
+			down += 1
 		end
 	end
-
-	function FinDiffHamiltonian{BC, T}(V::F, xlen, ylen, nx, ny) where {
-		BC <: BoundaryCondition, T <: Real, F <: Callable
-	}
-		FinDiffHamiltonian{BC, T, F}(V::F, xlen, ylen, nx, ny)
-	end
-
-	function FinDiffHamiltonian{BC}(V::F, xlen::TX, ylen::TY, nx, ny) where {
-		BC <: BoundaryCondition, TX <: Real, TY <: Real, F <: Callable
-	}
-		FinDiffHamiltonian{BC, promote_type(TX, TY), F}(V::F, xlen, ylen, nx, ny)
-	end
+	return [up/number_of_measurements, down/number_of_measurements]
 end
 
-# ╔═╡ c23f8ec1-694a-473e-8486-f854aaadcc62
-const FDH = FinDiffHamiltonian
+# ╔═╡ 4cf45ffb-fa82-4311-8928-7ab53f005ae8
+measurements = perform_many_measurements(1, eigvecs(σ_x)[:,2])#What happens when you change the number of measurements or the initial state?
 
+# ╔═╡ 55a0a31d-b10b-4949-9e69-ad33d3aa2f06
+let f = Figure()
+Axis(f[1, 1])
 
-# ╔═╡ f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
-testxl, testyl = (3.5, 8.0)
+barplot!([1, -1], measurements, color = :red, strokecolor = :black, strokewidth = 1)
 
-# ╔═╡ 97dbb2a4-d43f-4401-a167-8862837c196f
-testV(x, y) = sinpi(4x) * cospi(2*y)
+f end
 
-# ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
-testH = FinDiffHamiltonian{Periodic}(testV, testxl, testyl, testnx, testny)
+# ╔═╡ 410fca9e-7fe9-4e76-a176-4c7d0ba13a78
+md"## Fourth Axiom of Quantum Mechanics: Time Evolution
 
+We now understand how to specify a system, what we can measure and how to predict outcomes of measurements. The last piece of the puzzle is the *Time Evolution*, which predicts what the future state of a system will be, given its current state.
 
-# ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
-Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
+In order to understand this, we need to introduce one more concept: The **Hamiltonian**. This is the operator corresponding to the total energy of the system. In our example we can imagine an external magnetic field which is applied to the spin. If the spin is aligned with the magnetic field, its energy is smaller, e.g. -2. If it is pointing in the opposite direction, its energy is increased to +2. We assume that the magnetic field points in the z-direction. The Hamiltonian of the system then is"
 
-# ╔═╡ 50bf1130-d60d-40d4-aea0-024af72a69bd
-# non-allocating version of Base reshape.
-# Makes no difference in benchmarking, but let's optimise just cause we can.
-reshape2(a, dims) = invoke(Base._reshape, Tuple{AbstractArray,typeof(dims)}, a, dims)
+# ╔═╡ a52afb60-37d0-4894-a162-0b22e55b6e5a
+Hamiltonian = [-2 0; 0 2]
 
-# ╔═╡ 7af30430-cacc-4956-919c-d5707ec0cbf1
-function LinearAlgebra.mul!(
-	w::AbstractVector, H::FinDiffHamiltonian{Periodic, T}, v::AbstractVector
-) where T <: Real
+# ╔═╡ 671cafb7-91fd-44fe-8404-736b960eb28a
+md"Note that the Hamiltonian $H$ and the σ_z operator have the same eigenstates (Check that this is true!). This means that measuring either also fixes the result for measuring the other.
+
+**The Time evolution of a Quantum Mechanical system is given by the time evolution operator $U(t) = exp(iH ⋅ t/ħ)$.**"
+
+# ╔═╡ 5eb922d9-2ccd-4381-abf4-2d32a47fc83d
+function time_evolution_B_z(t)#Write the function which returns the time evolution operator U(t) for the Hamiltonian specified above. Assume ħ=1.
+	return cis(Float64[-2 0; 0 2]*t)
+end
+
+# ╔═╡ a4ca4561-e485-4e94-8d0c-73b47fe43959
+time_evolution_B_z(40) * eigvecs(σ_x)[:,2]
+
+# ╔═╡ fac5ebfa-65bb-44c7-86d0-7d0396c02a70
+md"Here we observe an important fact, which we did not focus on previously: The entries of the state-vectors may be complex. The time evolution corresponds to a rotation in the vectors space and the complex plane.
+
+How do the entries of the vectors change as the time evolution progresses?
+
+What happens if we use a magnetic field in x-direction?"
+
+# ╔═╡ 17fa590a-d77e-4d8c-9dd8-5ecfa29fbc41
+function time_evolution_B_x(t)#Write the function which returns the time evolution operator U(t) for a B-field in the x-direction, analog to the one in z-direction specified above. Assume ħ=1.
+	return cis(ComplexF64[0 2; 2 0]*t)
+end
+
+# ╔═╡ 5b8f576d-76ab-407d-8d26-d7abfe2f0cac
+md"In order to gain further intuition for the behaviour of states as the time evolution is applied, we turn to visualization. Since the full state including complex phases depends on 4 numbers it is difficult to imagine for us. However, a global complex phase, which is applied to the entire state $e^{i\phi} \Psi$, does not change the outcomes of measurements, so we can ignore it. All that remains is the relative complex phase between the entries, and the real magnitude of each entry of the vector.
+
+Show that a global complex phase does not change the outcome of measurements!"
+
+# ╔═╡ 592fafe8-ec65-486c-a541-f38da30d2dd2
+if probability(eigvecs(σ_x)[:,2], [0,1]) == probability(eigvecs(σ_x)[:,2]*cis(3), [0,1])
+	print("Global phases don't matter")
+else
+	print("Global phases do matter")
+end
+
+# ╔═╡ 460c778d-969c-4234-9e65-ef8f1bb3557f
+md"The outcome of a measurement is only dependent on the overlap of the eigenstates with the current state. This overlap is not changed by a global complex phase.
+
+We can further reduce the dimensionality of the problem by noting that the normalisation to length 1 of the vector removes one more degree of freedom. Therefore, only two numbers are sufficient to characterize the state: 
+ - The complex phase between the states
+ - How much the state points in the z-direction"
+
+# ╔═╡ f6b42b7d-c614-4c95-a105-d7dced988825
+function parametrize_Bloch_sphere(state)
+	return [2*acos(abs(state[1])),angle(state[1]) - angle(state[2])]
+end
+
+# ╔═╡ f802e2f0-201e-490b-937c-82e25bb640e0
+function Bloch_point(state)
+	parameters = parametrize_Bloch_sphere(state)
+	return Float64[sin(parameters[1])*cos(parameters[2]), sin(parameters[1])*sin(parameters[2]), cos(parameters[1])]
+end
+
+# ╔═╡ 70539c8d-7565-4554-b60e-22220151b38b
+time_range = 0:0.1:10
+
+# ╔═╡ f0716eed-8be2-4031-9345-c28386fc1412
+initial_state = [1,0]
+
+# ╔═╡ 4a5aa91c-cd22-481c-9e99-bf24a1eaa092
+@bind time PlutoUI.Slider(time_range)
+
+# ╔═╡ a0c4484b-0869-427b-9885-de3072bc8fb4
+md"Because the point can be a bit difficult to follow, we also plot the trace. Write the name of the function, which returns the time-evolution operator here:"
+
+# ╔═╡ a6269134-0ca9-464a-b05e-e4a17c1eac46
+time_evol = time_evolution_B_x
+
+# ╔═╡ 67988f84-dc78-4c9d-bc6b-260fd36556a6
+time_evolved_state = time_evol(time)*initial_state
+
+# ╔═╡ 28728934-b4b5-4b58-b44a-2ea9c5f51f5b
+plotted_point = Bloch_point(time_evolved_state)
+
+# ╔═╡ ca85162f-4b9a-4d12-89f1-2126321e4071
+let # Define the sphere's radius and parameterize the surface using spherical coordinates
+radius = 1
+u = range(0, stop=2π, length=50)
+v = range(0, stop=π, length=50)
+x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
+y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
+z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
+
+plotted_points = zeros(Float64, (3,length(time_range)))
+
+for i in 1:length(time_range)
+	plotted_points[:,i] = Bloch_point(time_evol(time_range[i])*initial_state)
+end
 	
-	wmat = reshape2(w, (H.nx, H.ny))
-	vmat = reshape2(v, (H.nx, H.ny))
+# Plot the semi-transparent sphere
+fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
 
-	ax = (H.nx / H.xlen)^2
-	ay = (H.ny / H.ylen)^2
-	h  = T(1//2)
+lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
 
-	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
-
-	# adding @inbounds and @simd doesn't improve performance much
-	Threads.@threads for iy in 1:H.ny
-		iyb = mod1(iy-1, H.ny)
-		iyt = mod1(iy+1, H.ny)
-
-		# left
-		H1y  = ax * (-h * vmat[end, iy] + vmat[1, iy] - h * vmat[2, iy])
-		H1y += ay * (-h * vmat[1, iyb] + vmat[1, iy] - h * vmat[1, iyt])
-		H1y += V(1, iy) * vmat[1, iy]
-		wmat[1, iy] = H1y
-
-		# middle
-		for ix in 2:(H.nx-1)
-			# 10% faster not to evaluate mod1 for ix indices here
-			Hxy  = ax * (-h*vmat[ix-1, iy] + vmat[ix, iy] - h*vmat[ix+1, iy])
-			Hxy += ay * (-h*vmat[ix, iyb] + vmat[ix, iy] - h*vmat[ix, iyt])
-			Hxy += V(ix, iy) * vmat[ix, iy]
-			wmat[ix, iy] = Hxy
-		end
-
-		# right
-		Hey  = ax * (-h * vmat[end-1, iy] + vmat[end, iy] - h * vmat[1, iy])
-		Hey += ay * (-h * vmat[end, iyb] + vmat[end, iy] - h * vmat[end, iyt])
-		Hey += V(H.nx, iy) * vmat[end, iy]
-		wmat[end, iy] = Hey
-	end
-
-	w
+scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
+# Display the figure
+fig
 end
 
-# ╔═╡ 98600be8-5246-41b6-8100-b221e76ee818
-function Base.getindex(
-	H::FDH{Periodic, T}, (ix, iy), (jx, jy)
-) where T <: Real
-	@boundscheck begin
-		checkbounds(H, ix, iy)
-		checkbounds(H, jx, jy)
-	end
-    ax = (H.nx / H.xlen)^2
-    ay = (H.ny / H.ylen)^2
-    if ix == jx
-        if iy == jy
-            Vxy = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
-            return ax + ay + Vxy
-        elseif abs(iy - jy) == 1 || abs(iy - jy) == H.ny - 1
-            return -ay / 2
-        end
-    elseif iy == jy && (abs(ix - jx) == 1 || abs(ix - jx) == H.nx - 1)
-        return -ax / 2
-    end
+# ╔═╡ 4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
+md"Finally, we want to do the same thing for a general Hamiltonian, which may also be time dependant. For this we define a function Hamiltonian, which returns the matrix at any particular time."
 
-    return zero(T)
+# ╔═╡ f0201489-9e3c-462e-8978-3c47ed7fa569
+function Hamiltonian_t(t)
+	return [sin(t) cos(t); cos(t) -2sin(t)]
 end
 
-# ╔═╡ fa349d2c-4db0-4293-a956-91d9cbe686b4
-function Base.getindex(H::FDH{Periodic, T}, i::Integer, j::Integer) where T <: Real
-	inds = Base.CartesianIndices((H.nx, H.ny))
-	ic = inds[i] |> Tuple
-	jc = inds[j] |> Tuple
-	return H[ic, jc]
+# ╔═╡ 72d32760-3c54-406b-b59a-1d4a8f087488
+function Generic_Time_Evolution(time)#Write the function which returns the time evolution operator U(t) for a generic Hamiltonian. Assume ħ=1.
+	return cis(Hamiltonian_t(time)*time)
 end
 
-# ╔═╡ bec6b558-b794-4d7e-9dd0-fba13a4b5c61
-md"### Wave Function"
+# ╔═╡ 7e2b7807-281b-4273-84f2-c5dd4954219c
+@bind time_2 PlutoUI.Slider(time_range)
 
-# ╔═╡ 61883ba0-0da8-43ec-9f3a-e5f6367492f3
-md"### Finite Differences Hamiltonian"
+# ╔═╡ a6ce8356-940a-4b7a-ab89-40744fd7e8e9
+state_H_evolved = Generic_Time_Evolution(time_2) * initial_state
 
-# ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
-@test testH * testv ≈ Matrix(testH) * testv
+# ╔═╡ a2a5cc59-08d1-498b-a62e-2302c6041e4c
+let # Define the sphere's radius and parameterize the surface using spherical coordinates
+radius = 1
+u = range(0, stop=2π, length=50)
+v = range(0, stop=π, length=50)
+x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
+y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
+z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
 
+plotted_points = zeros(Float64, (3,length(time_range)))
+plotted_point = Bloch_point(state_H_evolved)
 
-# ╔═╡ 5133587f-265a-40a7-8d5d-08d28ccab7a7
-LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
-
-# ╔═╡ 78553187-2839-4afd-b2aa-f500a2a87b20
-@test ishermitian(testH)
-
-# ╔═╡ c42390d6-0a93-438e-b8b1-bdaf13078a8c
-@test ishermitian(Matrix(testH))
-
-# ╔═╡ 5e6fb2f7-ba1c-4872-b0ca-a0f120d6eaed
-let x = rand(testnn), y = rand(testnn)
-	@test dot(x, testH * y) ≈ dot(y, testH * x) ≈ dot(y, testH, x) ≈ dot(x, testH, y)
+for i in 1:length(time_range)
+	plotted_points[:,i] = Bloch_point(Generic_Time_Evolution(time_range[i])*initial_state)
 end
-
-# ╔═╡ 65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
-function LinearAlgebra.opnormInf(H::FDH{Periodic})
-	ax = (H.nx / H.xlen)^2
-    ay = (H.ny / H.ylen)^2
-	return maximum(CartesianIndices((H.nx, H.ny))) do i
-		ix, iy = Tuple(i)
-		Vxy = H.V((ix-1) / H.nx, (iy-1) / H.ny)
-		return abs(ax + ay + Vxy) + abs(ax) + abs(ay)
-	end
-end
-
-# ╔═╡ 4a41cf38-7259-4316-be29-703ea0e3101a
-@test opnorm(testH, Inf) ≈ opnorm(Matrix(testH), Inf)
-
-# ╔═╡ a1c8fa54-57d4-4ae1-b775-8522b8c2090d
-md"### Even-Odd Splitting"
-
-# ╔═╡ b9ea4c05-5018-4421-b43b-c1bf43ecee32
-struct EvenOddSplit end
-
-# ╔═╡ c3cb2999-66af-4e6f-afa7-ac19d844dce6
-# ╠═╡ disabled = true
-#=╠═╡
-function step!(
-	w::AbstractVector,
-	v::AbstractVector,
-	dt::Real,
-	integrator::EvenOddSplit
-)
-	wmat = reshape(w, (H.nx, H.ny))
-	vmat = reshape(v, (H.nx, H.ny))
-
-	ax = (H.nx / H.xlen)^2
-	ay = (H.ny / H.ylen)^2
-	h  = T(1//2)
-
-	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
-
 	
-end
-  ╠═╡ =#
+# Plot the semi-transparent sphere
+fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
 
-# ╔═╡ 7449bbcb-88a8-46a0-8a84-a53a85f5d7b6
-md"### Krylov Exponential"
+lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
 
-# ╔═╡ c9f84b1e-49e5-4619-add9-b73c804333e0
-function V(x, y)
-    w = 0.1
-    d = 0.1
-    b = 0.33
-    h = 10
-    if 0.5 - w/2 < x < 0.5 + w/2
-        b1 = 0.5 - b/2 - d/2
-        b2 = 0.5 - b/2 + d/2
-        b3 = 0.5 + b/2 - d/2
-        b4 = 0.5 + b/2 + d/2
+scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
 
-        m1 = 0.5 - d/2
-        m2 = 0.5 + d/2
-        if y < b1 || y > b4 || (b2 < y < m1) || (m2 < y < b3)
-            return oftype(x, h)
-        end
-    end
 
-    zero(x)
+# Display the figure
+fig
 end
 
-# ╔═╡ 397957ee-c671-4446-ab4e-1e500148c3bb
-nx, ny = (100, 100)
+# ╔═╡ 547c87cc-63bc-43ad-821b-f6103f35f599
+md"What is the qualitative difference between a time-dependent and a non-time-dependent Hamiltonian? Why do you think these differences exist?
 
-# ╔═╡ 6e5ae6a4-a18c-48bf-85b9-9fe9144fe837
-wf0 = wavefunction(nx, ny) do x, y
-	r = 0.33
-    dx = x - 0.25
-    dy = y - 0.5
-    a = (dx / 0.1)^2 + (dy / 0.25)^2
-    return exp(-a + im * dx / 0.02)
-end
-
-# ╔═╡ 018941cf-7347-4d16-a950-d5b9acd78234
-heatmap(abs2.(wf0))
-
-# ╔═╡ 6f16d034-d59e-4719-bcad-b066be37f4f1
-NN = nx * ny
-
-# ╔═╡ 1948a0c2-59a6-41af-a2ba-443c06418a0f
-xlen, ylen = (100.0, 60.0)
-
-# ╔═╡ ec673526-580d-488a-aaa3-7b9a686fd02a
-H = FinDiffHamiltonian{Periodic}(V, xlen, ylen, nx, ny)
-
-# ╔═╡ 97315f46-9e31-45d6-99e7-98cc43924b59
-@bind tend Slider(range(0, 500; length=100))
-
-# ╔═╡ 32b47ff3-0b24-49b2-a979-634e698a36cb
-wft, _ = exponentiate(H, -im*tend, vec(wf0); maxiter=200)
-
-# ╔═╡ 7c1aa6e2-6877-4f06-b86c-35c32b37c754
-let fig = Figure()
-	ax = Axis(fig[1, 1]; aspect=xlen/ylen)
-	hidedecorations!(ax)
-	hidespines!(ax)
-
-	xs = range(0; step=xlen/nx, length=nx)
-	ys = range(0; step=ylen/ny, length=ny)
-	heatmap!(ax, xs, ys, reshape(abs2.(wft), (H.nx, H.ny)))
-	
-	Vs = [V(x/xlen, y/ylen) for x in xs, y in ys]
-	contour!(ax, xs, ys, Vs; color=:white, levels=1:1)
-	
-	fig
-end
+Try to find patterns behind the movement of the state accross the Bloch sphere for different Hamiltonians!"
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-KrylovKit = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-PlutoTest = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 GLMakie = "~0.10.3"
-KrylovKit = "~0.8.1"
-PlutoTest = "~0.2.2"
 PlutoUI = "~0.7.59"
 """
 
@@ -358,9 +346,9 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.4"
+julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "3e76eb8f10bd0cb493025ff8c2a5c6e0894d9750"
+project_hash = "92795ba12cfb5c1cc04c9e63fabf524011234630"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -523,7 +511,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.1+0"
+version = "1.1.0+0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -742,17 +730,11 @@ git-tree-sha1 = "4e351a8ce824acea8dcefcd6cfe0cd8c2ea130e3"
 uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 version = "0.10.3"
 
-[[deps.GPUArraysCore]]
-deps = ["Adapt"]
-git-tree-sha1 = "ec632f177c0d990e64d955ccc1b8c04c485a0950"
-uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
-version = "0.1.6"
-
 [[deps.GeoInterface]]
 deps = ["Extents"]
-git-tree-sha1 = "801aef8228f7f04972e596b09d4dba481807c913"
+git-tree-sha1 = "9fff8990361d5127b770e3454488360443019bb3"
 uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
-version = "1.3.4"
+version = "1.3.5"
 
 [[deps.GeometryBasics]]
 deps = ["EarCut_jll", "Extents", "GeoInterface", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
@@ -966,16 +948,6 @@ deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "Stats
 git-tree-sha1 = "7d703202e65efa1369de1279c162b915e245eed1"
 uuid = "5ab0869b-81aa-558d-bb23-cbf5423bbe9b"
 version = "0.6.9"
-
-[[deps.KrylovKit]]
-deps = ["GPUArraysCore", "LinearAlgebra", "PackageExtensionCompat", "Printf", "VectorInterface"]
-git-tree-sha1 = "3c2a016489c38f35160a246c91a3f3353c47bb68"
-uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
-version = "0.8.1"
-weakdeps = ["ChainRulesCore"]
-
-    [deps.KrylovKit.extensions]
-    KrylovKitChainRulesCoreExt = "ChainRulesCore"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1279,12 +1251,6 @@ git-tree-sha1 = "67186a2bc9a90f9f85ff3cc8277868961fb57cbd"
 uuid = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
 version = "0.4.3"
 
-[[deps.PackageExtensionCompat]]
-git-tree-sha1 = "fb28e33b8a95c4cee25ce296c817d89cc2e53518"
-uuid = "65ce6f38-6b18-4e1d-a461-8949797d7930"
-version = "1.0.2"
-weakdeps = ["Requires", "TOML"]
-
 [[deps.Packing]]
 deps = ["GeometryBasics"]
 git-tree-sha1 = "ec3edfe723df33528e085e632414499f26650501"
@@ -1325,12 +1291,6 @@ deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random"
 git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
 version = "1.4.1"
-
-[[deps.PlutoTest]]
-deps = ["HypertextLiteral", "InteractiveUtils", "Markdown", "Test"]
-git-tree-sha1 = "17aa9b81106e661cffa1c4c36c17ee1c50a86eda"
-uuid = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
-version = "0.2.2"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
@@ -1524,9 +1484,9 @@ version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "6e00379a24597be4ae1ee6b2d882e15392040132"
+git-tree-sha1 = "20833c5b7f7edf0e5026f23db7f268e4f23ec577"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.9.5"
+version = "1.9.6"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
@@ -1574,13 +1534,18 @@ deps = ["ConstructionBase", "DataAPI", "Tables"]
 git-tree-sha1 = "f4dc295e983502292c4c3f951dbb4e985e35b3be"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 version = "0.6.18"
-weakdeps = ["Adapt", "GPUArraysCore", "SparseArrays", "StaticArrays"]
 
     [deps.StructArrays.extensions]
     StructArraysAdaptExt = "Adapt"
     StructArraysGPUArraysCoreExt = "GPUArraysCore"
     StructArraysSparseArraysExt = "SparseArrays"
     StructArraysStaticArraysExt = "StaticArrays"
+
+    [deps.StructArrays.weakdeps]
+    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
+    GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
+    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -1639,9 +1604,9 @@ weakdeps = ["Random", "Test"]
     TestExt = ["Test", "Random"]
 
 [[deps.Tricks]]
-git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
+git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.8"
+version = "0.1.9"
 
 [[deps.TriplotBase]]
 git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
@@ -1680,12 +1645,6 @@ version = "1.20.0"
     ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
     InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
-[[deps.VectorInterface]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "7aff7d62bffad9bba9928eb6ab55226b32a351eb"
-uuid = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
-version = "0.4.6"
-
 [[deps.WoodburyMatrices]]
 deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "c1a7aa6219628fcd757dede0ca95e245c5cd9511"
@@ -1694,15 +1653,15 @@ version = "1.0.0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "52ff2af32e591541550bd753c0da8b9bc92bb9d9"
+git-tree-sha1 = "d9717ce3518dc68a99e6b96300813760d887a01d"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.12.7+0"
+version = "2.13.1+0"
 
 [[deps.XSLT_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
-git-tree-sha1 = "91844873c4085240b95e795f692c4cec4d805f8a"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "XML2_jll", "Zlib_jll"]
+git-tree-sha1 = "a54ee957f4c86b526460a720dbc882fa5edcbefc"
 uuid = "aed1982a-8fda-507f-9586-7b0439959a61"
-version = "1.1.34+0"
+version = "1.1.41+0"
 
 [[deps.Xorg_libX11_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxcb_jll", "Xorg_xtrans_jll"]
@@ -1864,51 +1823,66 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═dcbacb58-a77d-4ec2-aa10-bf6b72d5f33e
-# ╠═e22afb18-acbe-49ec-8b0f-0d5d311b9e09
-# ╠═f49b5d6e-464f-49d0-a3f2-1af2084d6dc2
-# ╠═30a856d7-01f1-411a-ab26-589dfbed9a73
-# ╠═52aaf95c-818a-495b-86c3-d1cc73f60033
-# ╠═edbc5861-96b0-4d29-b158-f60f82c77f37
-# ╠═896a6291-0027-4849-85cf-43e05082e5a8
-# ╟─bec6b558-b794-4d7e-9dd0-fba13a4b5c61
-# ╠═51954bdb-3cd7-428e-a7ad-7a02be2f06b4
-# ╠═504fa869-0faa-4f0c-943a-94dd1b57757b
-# ╠═e6a95c73-cc53-4323-a033-afb10b5511c3
-# ╠═44773e3c-37e1-4c1f-a859-c20943edd5f2
-# ╠═989bbaf8-f3e1-4c0e-941b-25480bbcb272
-# ╟─61883ba0-0da8-43ec-9f3a-e5f6367492f3
-# ╠═e4abdbe5-9da6-4454-9817-d97cbc471c93
-# ╠═9e7c66f3-a2f2-4470-bd7b-651963a8ad77
-# ╠═c23f8ec1-694a-473e-8486-f854aaadcc62
-# ╠═a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
-# ╠═f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
-# ╠═97dbb2a4-d43f-4401-a167-8862837c196f
-# ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
-# ╠═50bf1130-d60d-40d4-aea0-024af72a69bd
-# ╠═7af30430-cacc-4956-919c-d5707ec0cbf1
-# ╠═98600be8-5246-41b6-8100-b221e76ee818
-# ╠═fa349d2c-4db0-4293-a956-91d9cbe686b4
-# ╠═2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
-# ╠═5133587f-265a-40a7-8d5d-08d28ccab7a7
-# ╠═78553187-2839-4afd-b2aa-f500a2a87b20
-# ╠═c42390d6-0a93-438e-b8b1-bdaf13078a8c
-# ╠═5e6fb2f7-ba1c-4872-b0ca-a0f120d6eaed
-# ╠═65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
-# ╠═4a41cf38-7259-4316-be29-703ea0e3101a
-# ╟─a1c8fa54-57d4-4ae1-b775-8522b8c2090d
-# ╠═b9ea4c05-5018-4421-b43b-c1bf43ecee32
-# ╠═c3cb2999-66af-4e6f-afa7-ac19d844dce6
-# ╟─7449bbcb-88a8-46a0-8a84-a53a85f5d7b6
-# ╠═c9f84b1e-49e5-4619-add9-b73c804333e0
-# ╠═397957ee-c671-4446-ab4e-1e500148c3bb
-# ╠═6e5ae6a4-a18c-48bf-85b9-9fe9144fe837
-# ╠═018941cf-7347-4d16-a950-d5b9acd78234
-# ╠═6f16d034-d59e-4719-bcad-b066be37f4f1
-# ╠═1948a0c2-59a6-41af-a2ba-443c06418a0f
-# ╠═ec673526-580d-488a-aaa3-7b9a686fd02a
-# ╠═97315f46-9e31-45d6-99e7-98cc43924b59
-# ╠═32b47ff3-0b24-49b2-a979-634e698a36cb
-# ╠═7c1aa6e2-6877-4f06-b86c-35c32b37c754
+# ╠═53da5634-a69c-4285-ac26-314b5e696656
+# ╠═17fcdcf0-67d2-41ba-89ca-e8427e829b2f
+# ╠═e7000762-01f1-41fc-9847-9da1b4c642fe
+# ╟─d38ebcd4-e581-41a3-a741-a4412ebf1867
+# ╠═29bfbd20-b307-4ae6-a2b2-ad4c556c4479
+# ╟─8e2bff72-577d-4069-a55d-33330e45ce73
+# ╠═9bade9d9-2301-4f36-8809-344873f8630c
+# ╠═653e636b-5790-452c-83b2-194609bb42af
+# ╟─ba383896-1d2a-43a0-851b-4114891645be
+# ╟─2af78c44-2d26-486d-beb4-e6f1c425b393
+# ╠═d8cc41e8-fe7b-43e7-8123-359eb32c7380
+# ╠═e8cd222b-97f7-42d6-834b-c80621a76a2f
+# ╟─eb131edf-0d88-45ad-b72d-b887453838f1
+# ╠═63dbb47c-022b-468a-be97-7b2e01c7cffd
+# ╟─456082fa-42b6-4776-9788-55c2c0547025
+# ╠═ec6e42ea-bb49-4d5d-85b2-066855618e08
+# ╟─89c52494-8f14-41a8-8211-6ecb591b682a
+# ╠═ec85de5e-8e33-4bde-8634-3c1e201127d9
+# ╟─c772a479-ffe1-4478-89ba-1edb829feb15
+# ╟─8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
+# ╟─f908f827-49a2-4433-b4d6-846aeb7ea355
+# ╠═59e3a5b5-01b1-4a97-bad8-527f1f296d61
+# ╠═c8602d92-88cd-4c98-b8c3-47575247e01a
+# ╠═4fc67d42-cbaf-4be3-9bc3-3a855734857d
+# ╟─6b6a2445-16dd-485c-985b-8edacfacfe4e
+# ╠═7331fca3-7713-4e97-b442-14266d98b9c4
+# ╠═1b109de1-5d4b-49b1-8c0b-61ab0ae2367d
+# ╟─2f4bd64a-737b-4478-89ff-84a5ff5ecac7
+# ╠═9a790930-9dc4-47a0-bf62-1ad65f68887d
+# ╠═6ea47032-81d9-483e-aaec-e20079fb8f22
+# ╟─0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
+# ╠═69cb2496-d536-4687-9753-38fbbaeceab1
+# ╠═4cf45ffb-fa82-4311-8928-7ab53f005ae8
+# ╟─55a0a31d-b10b-4949-9e69-ad33d3aa2f06
+# ╟─410fca9e-7fe9-4e76-a176-4c7d0ba13a78
+# ╠═a52afb60-37d0-4894-a162-0b22e55b6e5a
+# ╟─671cafb7-91fd-44fe-8404-736b960eb28a
+# ╠═5eb922d9-2ccd-4381-abf4-2d32a47fc83d
+# ╠═a4ca4561-e485-4e94-8d0c-73b47fe43959
+# ╠═fac5ebfa-65bb-44c7-86d0-7d0396c02a70
+# ╠═17fa590a-d77e-4d8c-9dd8-5ecfa29fbc41
+# ╟─5b8f576d-76ab-407d-8d26-d7abfe2f0cac
+# ╠═592fafe8-ec65-486c-a541-f38da30d2dd2
+# ╟─460c778d-969c-4234-9e65-ef8f1bb3557f
+# ╠═f6b42b7d-c614-4c95-a105-d7dced988825
+# ╠═f802e2f0-201e-490b-937c-82e25bb640e0
+# ╠═70539c8d-7565-4554-b60e-22220151b38b
+# ╠═f0716eed-8be2-4031-9345-c28386fc1412
+# ╠═4a5aa91c-cd22-481c-9e99-bf24a1eaa092
+# ╟─a0c4484b-0869-427b-9885-de3072bc8fb4
+# ╠═a6269134-0ca9-464a-b05e-e4a17c1eac46
+# ╠═67988f84-dc78-4c9d-bc6b-260fd36556a6
+# ╠═28728934-b4b5-4b58-b44a-2ea9c5f51f5b
+# ╟─ca85162f-4b9a-4d12-89f1-2126321e4071
+# ╠═4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
+# ╠═f0201489-9e3c-462e-8978-3c47ed7fa569
+# ╠═72d32760-3c54-406b-b59a-1d4a8f087488
+# ╠═7e2b7807-281b-4273-84f2-c5dd4954219c
+# ╠═a6ce8356-940a-4b7a-ab89-40744fd7e8e9
+# ╠═a2a5cc59-08d1-498b-a62e-2302c6041e4c
+# ╟─547c87cc-63bc-43ad-821b-f6103f35f599
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
