@@ -292,8 +292,8 @@ function force_field(ms::Molecular_Structure)
         total_dVdy = zeros(Float64,length(ms.positions))
         for (i, (pos, params)) in enumerate(zip(ms.positions, ms.potential_params))
             # Compute the partial derivatives numerically for each atom's potential
-            dVdx = (ms.potential_function(pos[1], pos[2], (x + δ, y), params...) - ms.potential_function(pos[1], pos[2], (x - δ, y), params...)) / (2 * δ)
-            dVdy = (ms.potential_function(pos[1], pos[2], (x, y + δ), params...) - ms.potential_function(pos[1], pos[2], (x, y - δ), params...)) / (2 * δ)
+            dVdx = (ms.potential_function(pos[1], pos[2], (x + δ, y), params...) - ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x - δ, y), params...)) / (2 * δ)
+            dVdy = (ms.potential_function(pos[1], pos[2], (x, y + δ), params...) - ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x, y - δ), params...)) / (2 * δ)
             
             # Sum the contributions
             total_dVdx[i] += dVdx
@@ -314,7 +314,7 @@ function ionic_force(ms::Molecular_Structure)
 
     δ = 1e-8
     for i in 1:length(ms.positions)
-        x, y = ms.positions[i]
+        x, y = ms.positions[i][1]*ms.length, ms.positions[i][2]*ms.width
         
         # Create a structure without the i-th atom
         other_positions = [ms.positions[j] for j in 1:length(ms.positions) if j != i]
@@ -331,7 +331,16 @@ function ionic_force(ms::Molecular_Structure)
         forcesx[i] = dVdx
         forcesy[i] = dVdy
     end
-    return [forcesx, forcesy]
+    forces = [forcesx, forcesy]
+	average = zeros(2)
+	for i in 1:length(forces)
+		average += forces[i]
+	end
+	average .= average/length(forces)
+	for i in 1:length(forces[1])
+		forces[i] = forces[i] - average
+	end
+	forces/50
 end
 
 # ╔═╡ 3c2d6888-33a2-4ad9-92c4-a0ea1aca6ef2
@@ -350,13 +359,14 @@ begin
 	NL = 25
 	NW = 25
 	
-	L = 5.0
-	W = 5.0
+	L = 3.0
+	W = 3.0
 
 	initial_positions = [(0.5, 0.8), (0.5,0.2)]
 	initial_velocities = [(0.0, -0.1), (0.0, 0.1)]
 	scales = [[0.01],[0.01]]
 	num_electrons = 1
+	masses = [1000, 1000]
 end
 
 # ╔═╡ b91ca1bd-6ae2-4b57-837d-529174f911e7
@@ -364,7 +374,7 @@ md"Define the potential of the ions: "
 
 # ╔═╡ f1fbbdf5-4323-4bc9-93d7-65d31acc1d03
 function ionic_potential(ionx,iony,(x,y),scale)
-        return - scale/sqrt((ionx-x)^2 + (iony - y)^2 + 0.001)
+        return - scale/sqrt((ionx-x)^2 + (iony - y)^2 + 0.01)
 end
 
 # ╔═╡ 8491dbdd-5eca-4fb6-ab81-57e54e508c75
@@ -429,7 +439,8 @@ let fig = Figure()
 	
 	Vs = [V1(x/L, y/W) for x in xs, y in ys]
 	contour!(ax, xs, ys, Vs; color=:white)
-	
+	realspace = [(mol.positions[1][1]*L, mol.positions[1][2]*W), (mol.positions[2][1]*L, mol.positions[2][2]*W)]
+	scatter!(ax, realspace; color=:red )
 	fig
 end
 
@@ -439,7 +450,23 @@ md"Now that we have our molecular structure, we want to propagate it in time! We
 # ╔═╡ 55e101e3-2329-4845-8fc7-7aac45f5680a
 function Force_Calculator(F::Function, density)
     #We calculate the Hellman-Feynmann forces, which are the expectation value of the derivative of the Hamiltonian with respect the state. In the Born-Oppenheimer approximation we assume that the system is always in the ground state, and we have a slater determinant of the NELECT eigenstates corresponding to the lowest energy eigenvalues. We don't actually have to calculate this, since the expectation value is just the integral over the derivative of the external potential with the density, which can be calculated as the sum of the densities of the single orbitals. Therefore, all we need are the derivative with respect to the potential and the NELECT lowest eigenvectors. 
-    sum(F(x/NL*L,y/NW*W)*density[x+(y-1)*NL] for x in 1:NL for y in 1:NW)
+    forces = -sum(F(x/NL*L,y/NW*W)*density[x+(y-1)*NL] for x in 1:NL for y in 1:NW)
+	#The following part removes some numerical error by enforcing that the net force should be zero. 
+	average = zeros(2)
+	for i in 1:length(forces[1])
+		average[1] += forces[1][i]
+		average[2] += forces[2][i]
+	end
+	average .= average/length(forces)
+	for i in 1:length(forces[1])
+		forces[1][i] = forces[1][i] - average[1]
+		forces[2][i] = forces[2][i] - average[2]
+	end
+	retforce = []
+	for i in length(forces[1])
+		push!(retforce, (forces[1][i], forces[2][i]))
+	end
+	retforce
 end
 
 # ╔═╡ 1da67fb4-cfa0-454d-bbf3-594cee7243b9
@@ -448,10 +475,10 @@ md"This function takes a molecular structure, and a timestep (as well as the gri
 # ╔═╡ 690a299e-d664-4fdc-8e4c-d9adedb03aed
 function propagate(ms::Molecular_Structure, timestep::Float64, NL, NW,density)
     # We use the Leap-frog algorithm to update the positions and speeds at every time step. 
-    ms.positions = [ (mod(x + vx * timestep, ms.length), mod(y + vy * timestep,ms.width)) for ((x, y), (vx, vy)) in zip(ms.positions, ms.speeds) ]
-    ms.speeds = [ (vx + fx*timestep, vy + fy*timestep) for ((fx, fy), (vx, vy)) in zip(ionic_force(ms) + Force_Calculator(force_field(ms), density), ms.speeds) ]
+    ms.positions = [ (mod(x + vx * timestep, 1), mod(y + vy * timestep, 1)) for ((x, y), (vx, vy)) in zip(ms.positions, ms.speeds) ]
+    ms.speeds = [ (vx + fx*timestep, vy + fy*timestep) for ((fx, fy), (vx, vy)) in zip(Force_Calculator(force_field(ms), density), ms.speeds) ]
     return ms
-end
+end#ionic_force(ms) + 
 
 # ╔═╡ 2f107914-b129-423e-8270-86d40c44d20e
 md"We can now propagate the structure by one time step. Every time the cell below is executed, the molecular structure is updated, and the simulation advances by a single time step."
@@ -476,7 +503,9 @@ let fig = Figure()
 	
 	Vs = [V(x/L, y/W) for x in xs, y in ys]
 	contour!(ax, xs, ys, Vs; color=:white)
-	
+	realspace = [(mol.positions[1][1]*L, mol.positions[1][2]*W), (mol.positions[2][1]*L, mol.positions[2][2]*W)]
+	scatter!(ax, realspace; color=:red )
+
 	fig
 end
 
@@ -493,28 +522,37 @@ function advance(mol, NL, NW, regrid)
 	return reshape(abs2.(chrg), (NL, NL)), [V(x/L, y/W) for x in xs, y in ys]
 end
 
-# ╔═╡ 5b3256ad-8e18-4005-8947-29c39eabaf64
-chargedata = []
-
-# ╔═╡ bc254a1f-a203-426e-aab3-a1aa6d4168cb
-potentialdata = []
-
 # ╔═╡ 9743111b-b642-491b-87f7-d6536a5908ab
-function play(endofplay)
+function play(mole, endofplay)
 	chargedata = []
-	potentialdata = []#This deletes the previous entries
+	potentialdata = []
+	positionsl = []
 	for i in 1:endofplay
-	stepc, stepv = advance(mol,NL,NW,regrid)
+	stepc, stepv = advance(mole,NL,NW,regrid)
 	push!(chargedata,stepc)
 	push!(potentialdata,stepv)
+	por = [(mole.positions[1][1]*L, mole.positions[1][2]*W)]
+	push!(positionsl, por)
 	end
+	return chargedata, potentialdata, positionsl
 end
 
+# ╔═╡ 39d3a8fc-f86a-489d-9223-e82b16ad6b9a
+begin
+	initial_positions2 = [(0.5, 0.5)]
+	initial_velocities2 = [(0.0, 0.0)]
+	scales2 = [[1]]
+	num_electrons2 = 1
+end
+
+# ╔═╡ 863208d3-f59b-44ce-9474-1d5814bf1ae4
+mol2 = Molecular_Structure(L, W, initial_positions2, initial_velocities2, ionic_potential, scales2, num_electrons2)
+
 # ╔═╡ 01354cb3-2ef9-4c04-ab44-9372b0039111
-play(200)
+chargedata, potentialdata, pol = play(mol2, 25)
 
 # ╔═╡ 99f7eb04-8073-4ffd-ad4a-d40a76e777ad
-@bind time Slider(range(1, 200; length=200))
+@bind time Slider(range(1, 25; length=25))
 
 # ╔═╡ 2c4c72eb-526b-489f-a055-c293639b88f1
 let fig = Figure()
@@ -527,9 +565,8 @@ let fig = Figure()
 	xs = range(0; step=L/NL, length=NL)
 	ys = range(0; step=W/NW, length=NW)
 	heatmap!(ax, xs, ys, chargedata[tim])
-	
 	contour!(ax, xs, ys, potentialdata[tim]; color=:white)
-	
+	scatter!(ax, pol[tim]; color=:red )
 	fig
 end
 
@@ -2132,12 +2169,12 @@ version = "3.5.0+0"
 # ╠═9f5ede07-7052-436f-9d09-43ad10100e5f
 # ╟─2a3f43d9-e699-4662-bac9-218667a9bbc1
 # ╠═7e973ed4-5954-4d4c-bb03-9a4e055c4f54
-# ╠═5b3256ad-8e18-4005-8947-29c39eabaf64
-# ╠═bc254a1f-a203-426e-aab3-a1aa6d4168cb
 # ╠═9743111b-b642-491b-87f7-d6536a5908ab
+# ╠═39d3a8fc-f86a-489d-9223-e82b16ad6b9a
+# ╠═863208d3-f59b-44ce-9474-1d5814bf1ae4
 # ╠═01354cb3-2ef9-4c04-ab44-9372b0039111
 # ╠═99f7eb04-8073-4ffd-ad4a-d40a76e777ad
-# ╠═2c4c72eb-526b-489f-a055-c293639b88f1
+# ╟─2c4c72eb-526b-489f-a055-c293639b88f1
 # ╟─7e91e705-f345-427c-9e8a-c41f13cc046a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
