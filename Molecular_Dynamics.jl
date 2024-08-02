@@ -14,429 +14,541 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 691ec055-4906-4de6-acc7-86aeb66921b0
+# ╔═╡ e22afb18-acbe-49ec-8b0f-0d5d311b9e09
+begin
+	import LinearAlgebra
+	using LinearAlgebra
+end
+
+# ╔═╡ f49b5d6e-464f-49d0-a3f2-1af2084d6dc2
+using PlutoTest
+
+# ╔═╡ 30a856d7-01f1-411a-ab26-589dfbed9a73
+using PlutoUI: Slider
+
+# ╔═╡ 52aaf95c-818a-495b-86c3-d1cc73f60033
+using Base: Callable
+
+# ╔═╡ edbc5861-96b0-4d29-b158-f60f82c77f37
+using KrylovKit
+
+# ╔═╡ 896a6291-0027-4849-85cf-43e05082e5a8
 using GLMakie
 
-# ╔═╡ fecc4dc0-1957-4034-8685-3deb4b4c1acc
-using PlutoUI
+# ╔═╡ dcbacb58-a77d-4ec2-aa10-bf6b72d5f33e
+import Base
 
-# ╔═╡ 153e778c-ed7d-4caa-8653-de89b586fe20
-md"
-# Numbers
-
-Variables store values for later use. Play with the expressions below to see how the outputs change. Press shift + enter to execute a cell and press control or command + enter to execute a cell and create a new cell below. For more details on variables, see the relevant Julia manual section [here](https://docs.julialang.org/en/v1/manual/variables/).
-"
-
-# ╔═╡ 829793b8-35ff-11ef-0499-b5ddc4165a27
-x1 = 3  # Our first variable
-
-# ╔═╡ 4fb20823-d20c-4d0d-8568-e3bb6cca0a28
-# Our second variable
-x2 = 2 * x1 + 5
-
-# ╔═╡ dc8bd2b8-4bc7-42eb-acb8-f06432bace8f
-# Feel free to create new cells like this one, using the plus symbol above and below each cell on the left.
-5 + 3
-
-# ╔═╡ 256e150c-477b-4b9e-8a93-3300ec7f4ae9
-md"Every variable has a type. `x1` and `x2` are integers (whole numbers, which are positive or negative)."
-
-# ╔═╡ 59fa4f07-8ba9-414d-8f6a-60dc9976ce43
-typeof(x1)
-
-# ╔═╡ a8880925-bd5e-4029-aefa-ab48ffb93b3d
-md"We can also assign values of other types to variables. See examples below."
-
-# ╔═╡ 60a369ef-6df6-4609-95e0-b3165519bf3d
-x3 = true  # try replacing with false
-
-# ╔═╡ 3b03ea09-d82b-499a-a3f3-e9cff282938f
-if x3  # true/false values may be used in if statements to conditionally execute code.
-	print("Hello World! I only print if x3 is true.")
-else
-	print("Hello World! I only print if x3 is false.")
+# ╔═╡ 51954bdb-3cd7-428e-a7ad-7a02be2f06b4
+function wavefunction(ψ, nx, ny; normalise=true)
+    rx = range(0; step=1/nx, length=nx)
+    ry = range(0;  step=1/ny,  length=ny)
+    mat = [ψ(x, y) for x in rx, y in ry]
+    normalise && normalize!(mat)
+    return mat
 end
 
-# ╔═╡ ea19e5f6-c0a4-424d-9410-d7919ce37b8b
-typeof(x3)  # Bools or Booleans represent true or false values.
+# ╔═╡ 504fa869-0faa-4f0c-943a-94dd1b57757b
+testnx, testny = (6, 6)
 
-# ╔═╡ 5edb0bb9-0d6c-419e-af39-38cf469ae0df
-x4 = "This is a string."
+# ╔═╡ e6a95c73-cc53-4323-a033-afb10b5511c3
+testnn = testnx * testny
 
-# ╔═╡ 8a6fc8de-f385-4bda-a97a-5de362a8e4dd
-typeof(x4)
+# ╔═╡ 44773e3c-37e1-4c1f-a859-c20943edd5f2
+testv = randn(testnn)
 
-# ╔═╡ 84f0c0a7-2523-4386-af53-71edc5b5e944
-x4 * " It can be" * " concatenated with the * operator"
-
-# ╔═╡ ecbe28b1-8feb-4250-9fa9-6f996bb693b6
-md"For our purposes, numbers are especially important. So far, we have encountered whole numbers. To represent numbers with a decimal point, we need floating point numbers. For more details on integers and floating point numbers, see the Julia manual section on them [here](https://docs.julialang.org/en/v1/manual/integers-and-floating-point-numbers/#Integers-and-Floating-Point-Numbers)."
-
-# ╔═╡ 14ff863e-6c7b-4279-a1dd-769a88054b09
-x5 = 5.3  # This is a floating point number (numbers with decimal point)
-
-# ╔═╡ 4835b6d5-9e83-48dd-ac97-cab97fba7191
-1.602_176_63e-19  # scientific notation (underscores are optional)
-
-# ╔═╡ 31556d1a-e942-45b0-99fd-4d2d23c86e9a
-typeof(x5)
-
-# ╔═╡ 7d6f083c-2aa3-48c3-8851-69cea093fbca
-md"As you might expect, we can calculate with numbers."
-
-# ╔═╡ f458db5f-f542-4fc5-bd6a-5578376826ca
-x5 / 3 - 2
-
-# ╔═╡ 7b1959de-5688-4823-9d70-cb45c1572d54
-x5 ^ 2
-
-# ╔═╡ 1d3ba3ad-64a6-4c5d-aff6-0d793e152278
-x5 * x5 - x1
-
-# ╔═╡ 427e39c4-3562-4177-a91f-009ca839b68b
-sqrt(4)
-
-# ╔═╡ 81332da4-935b-49a3-a043-c5446ee4df8c
-exp(x5)
-
-# ╔═╡ 484a5290-bc90-4665-ab09-b8b9cd7f07ca
-log2(2^x5)
-
-# ╔═╡ 31c0f532-bc5c-4cd0-b157-1959f2d44204
-md"We can also compare numbers."
-
-# ╔═╡ b2b8ab10-9963-4565-85da-490ba2ee6885
-(3 - 2) == 1
-
-# ╔═╡ f3efba21-1aab-4a13-9509-9d45fe5161be
-x5 > 3
-
-# ╔═╡ 07525873-366a-4b2c-8710-ea98962365c2
-# greater than or equal to 3 and not equal to 1
-x5 >= 3 && x5 != 1
-
-# ╔═╡ 6faa0256-1190-45b3-82e7-14ff2ffb25ed
-# greater than 1 or less than -1
-x5 > 1 || x5 < -1
-
-# ╔═╡ a5235c20-b927-4a24-b2e7-a350209ac8df
-md"`im` represents i and with it we can represent complex numbers. For more details on complex numbers in Julia, see [here](https://docs.julialang.org/en/v1/manual/complex-and-rational-numbers/#Complex-Numbers)."
-
-# ╔═╡ ebefa4fd-d15e-4652-9caf-2662d1edd62b
-im ^ 2
-
-# ╔═╡ a6dd4796-d36f-4a13-9ee5-327a9695ef18
-# sqrt(-1) will throw an error. Try it if you want.
-sqrt(Complex(-1))
-
-# ╔═╡ 87e2c807-b2f2-4aed-ac6a-d8546d08fc9a
-x6 = 3 + 2.5im
-
-# ╔═╡ 999d6dde-128c-4c1c-8b52-e79e58c48788
-typeof(x6)
-
-# ╔═╡ ba030427-5039-41c1-931a-0c8608bc8812
-real(x6)
-
-# ╔═╡ 24590d77-c80b-4e2f-9d40-fa45ab09ef7c
-imag(x6)
-
-# ╔═╡ 16820ac7-a170-4fd1-bea0-ec74c42b189d
-conj(x6)
-
-# ╔═╡ 6f1dc7fc-a81e-4f92-9952-abda25dd247c
-x6 * conj(x6) == abs2(x6)
-
-# ╔═╡ 1f3d1df8-ba70-468d-806f-f52fb29692d9
-sqrt(abs2(x6)) == abs(x6)
-
-# ╔═╡ a0f56171-fae4-4fd9-a60f-a97ce18df330
-(2 + 3im) * x6
-
-# ╔═╡ d6091835-c724-4a0c-b31e-e8747fc70639
-(1 - 3.5im) + (-2 - im)
-
-# ╔═╡ 08c38122-1ff5-4fa6-a063-aa5a9a661444
-x6^2
-
-# ╔═╡ 4dea5df4-ffcb-4f3e-9b6e-31123f4393dd
-3x6
-
-# ╔═╡ f449f7e2-ac0a-4fa1-b43d-96a69007e051
-1 / x6
-
-# ╔═╡ 505dd190-4b7f-4a4f-899e-d2153b558e37
-x6 / (2 - im)
-
-# ╔═╡ 641772f9-e782-4ab8-8759-0afc2553fcb5
-exp(x6)
-
-# ╔═╡ d0badf93-5a98-4ea7-8bb1-433e3bec0cd2
-md"Below, we have a list of random complex numbers (`original_zs`), which we multiply by a complex number `rot`. You'll see that multiplication by `rot` scales and rotates the picture. What happens when you set `rot` to `im` or `-im`? Play with the sliders to rotate and scale by different amounts."
-
-# ╔═╡ a50c7532-b7af-4013-988c-4e60e32a2eaf
-original_zs = randn(ComplexF64, 10)
-
-# ╔═╡ 831532cc-85bf-4f50-b597-430b4f6104dd
-@bind rot_r PlutoUI.Slider(0:0.05:2)
-
-# ╔═╡ 84829f97-4a82-497a-8413-406633935d0f
-@bind rot_ϕ PlutoUI.Slider(0:0.1:2π)
-
-# ╔═╡ f0167868-0a88-46a3-b774-034d16aea14f
-rot = rot_r * (cos(rot_ϕ) + im*sin(rot_ϕ))
-
-# ╔═╡ 17735315-181e-4aa6-a3eb-dea6748cef92
-rot_r, rot_ϕ
-
-# ╔═╡ 39d47efa-4791-4b4a-9e7f-4c64a5919faa
-abs(rot), angle(rot) / 2π * 360
-
-# ╔═╡ 2374b2df-528b-4ff3-a0b3-6b6dee1e88d9
-# multiply each number in original_zs with rot
-multiplied_zs = rot .* original_zs
-
-# ╔═╡ fc56d53a-4109-43b0-80fe-5b3b4561d5ea
-let fig = Figure()
-	ax = Axis(fig[1, 1]; xlabel="real part", ylabel="imaginary part")
-	xlims!(ax, -3, 3)
-	ylims!(ax, -2, 2)
-
-	scatter!(ax, real.(original_zs), imag.(original_zs); label="original")
-	scatter!(ax, real.(multiplied_zs), imag.(multiplied_zs); label="rotated")
-	lines!(ax, [0, real(rot)], [0, imag(rot)]; color=Cycled(3), label="rot")
-
-	axislegend(ax)
-	
-	fig
+# ╔═╡ 989bbaf8-f3e1-4c0e-941b-25480bbcb272
+testwf = wavefunction(testnx, testny) do x, y
+	cospi(4x) * sinpi(2y)
 end
 
-# ╔═╡ d84fa26d-f5d4-423b-81c8-c0603309eb72
-md"
-# Functions & Derivatives
-
-Functions take some number of input, process them in some way and return some number of outputs. For details, see the section in the Julia manual [here](https://docs.julialang.org/en/v1/manual/functions/#man-functions).
-"
-
-# ╔═╡ df975096-98c9-4135-ab3d-802b5a870d6f
-# Simple function
-f(x) = sin(x)
-
-# ╔═╡ 839e13d9-434e-4834-99cf-1cc030671a3f
-f(5)
-
-# ╔═╡ bab636c3-7d4e-4016-a933-8d84664ec69a
-# More complicated function, which tests the triangle inequality
-function test_triangle(x, y)
-	hypot = abs(x + y)
-	sides = abs(x) + abs(y)
-	return sides - hypot
+# ╔═╡ e4abdbe5-9da6-4454-9817-d97cbc471c93
+begin
+	abstract type BoundaryCondition end
+	struct Periodic <: BoundaryCondition end
+	struct Box <: BoundaryCondition end
 end
 
-# ╔═╡ 2481044a-88da-4c4f-b141-34a55b850eb8
-test_triangle(2 + im, 5 - 3.5*im)
+# ╔═╡ 9e7c66f3-a2f2-4470-bd7b-651963a8ad77
+begin #We Change one thing about the Hamiltonian: We add the k-points
+	struct FinDiffHamiltonian{
+	    BC <: BoundaryCondition,
+	    T <: Real,
+	    F <: Callable
+	} <: AbstractMatrix{ComplexF64}
+	    V::F
+	    xlen::T
+	    ylen::T
+		kx::T
+		ky::T
+	    nx::Int
+	    ny::Int
+		function FinDiffHamiltonian{BC, T, F}(V, xlen, ylen, kx, ky, nx, ny) where {
+			BC <: BoundaryCondition, T <: Real, F <: Callable
+		}
+			nx < 3 && throw(ArgumentError("nx=$nx must not be smaller than 3"))
+			#ny < 3 && throw(ArgumentError("ny=$ny must not be smaller than 3"))
+			new{BC, T, F}(V, xlen, ylen, kx, ky, nx, ny)
+		end
+	end
 
-# ╔═╡ bd20b6f2-05f2-4c13-b908-10d11657b452
-test_triangle(2 + im, 4 + 2*im)
+	function FinDiffHamiltonian{BC, T}(V::F, xlen, ylen, kx, ky, nx, ny) where {
+		BC <: BoundaryCondition, T <: Real, F <: Callable
+	}
+		FinDiffHamiltonian{BC, T, F}(V::F, xlen, ylen, kx, ky, nx, ny)
+	end
 
-# ╔═╡ cc0c6013-7693-45ab-819a-77df1f2f21bd
-diff(f, x, h) = (f(x + h) - f(x)) / h
-
-# ╔═╡ 4fd9df31-5b59-40b3-87f5-06cf54e235d3
-@bind xapprox PlutoUI.Slider(-5:0.1:5)
-
-# ╔═╡ d96280f5-eaeb-4c78-a5d9-589254dd1acd
-let fig = Figure(), h = 0.001
-	ax = Axis(fig[1, 1])
-
-	xs = range(-5, 5; length=100)
-	lines!(ax, xs, f.(xs); label="f")
-	lines!(ax, xs, diff.(f, xs, h); label="df")
-	
-	linxs = range(-0.5, 0.5; length=100)
-	lines!(ax, xapprox .+ linxs, f(xapprox) .+ diff(f, xapprox, h) .* linxs; 
-		label="linearisation")
-
-	axislegend(ax)
-	
-	fig
-end
-
-# ╔═╡ 42dce2dc-f43d-44b7-9578-dda6baa8a8be
-md"
-# Control Flow and Vectors
-
-For details and further control flow constructs see [here](https://docs.julialang.org/en/v1/manual/control-flow/#Control-Flow).
-
-## Conditional Evaluation
-"
-
-# ╔═╡ 89a274f1-4e50-41eb-8569-714dd3ec1a5f
-x7 = 2
-
-# ╔═╡ 53c481e3-6b98-46b3-815a-423f5856926d
-if x7 > 3
-	x7 - 5
-elseif x7 == 3
-	x7
-elseif x7 < 3
-	x7 + 2
-else
-	"We should never get here!"
-end
-
-# ╔═╡ b1b19b64-b5cc-4a74-92e7-70dcee6218cf
-md"One line if statements are possible,"
-
-# ╔═╡ 4169b9c1-fc55-45a8-938a-1940d634dac0
-if x7 > 2; 3 else 5 end
-
-# ╔═╡ 1ad0b912-0d67-4e5f-a9a9-ec1d41ce3bb4
-md"but they can be done more elegantly."
-
-# ╔═╡ adee7e99-e2f5-44c2-a3c0-19ea858b60d2
-# This is called a ternary operator
-x7 > 2 ? 3 : 5
-
-# ╔═╡ 9fede230-4e5b-413a-acde-8bc5ad375c23
-md"Similarly and (`&&`) and or (`||`) operators can be used for shorthand if statements."
-
-# ╔═╡ 0aa8959e-f90d-4404-bf3c-64c24196eb5e
-2 == 2 && print("first part must be true to get here.")
-
-# ╔═╡ e3567900-ce53-4381-827c-9c8db99d2df7
-2 == 2 || print("first part must be false to get here.")
-
-# ╔═╡ 33c8a68f-a7ae-4a94-9774-9178b4556b0b
-md"## Loops"
-
-# ╔═╡ baf07f20-d4d7-4451-9f08-4551f65331ce
-let i = 1
-	while i < 5
-		print(i)
-		i += 1  # add one to i
+	function FinDiffHamiltonian{BC}(V::F, xlen::TX, ylen::TY, kx::TZ, ky::TA, nx, ny) where {
+		BC <: BoundaryCondition, TX <: Real, TY <: Real, TZ <: Real, TA <: Real, F <: Callable
+	}
+		FinDiffHamiltonian{BC, promote_type(promote_type(TX, TY), promote_type(TZ, TA)), F}(V::F, xlen, ylen, kx, ky, nx, ny)
 	end
 end
 
-# ╔═╡ 5da40376-b68d-49e1-b2a6-4676b6ba31b2
-for i in 5:-1:1
-	print(i)
-end
+# ╔═╡ c23f8ec1-694a-473e-8486-f854aaadcc62
+const FDH = FinDiffHamiltonian
 
-# ╔═╡ 2ef0d503-d8e1-4351-bdb9-c2ab98faef58
-md"# Vectors"
+# ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
+Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
 
-# ╔═╡ 6ec59e0f-b3d9-4105-9960-64b3455adede
-v1 = [1, 2, 5, -1]
+# ╔═╡ f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
+testxl, testyl = (3.5, 8.0)
 
-# ╔═╡ 958ff51e-3ce2-4d96-9776-98da9cd78d0a
-length(v1)
+# ╔═╡ 74930cbb-7b22-49aa-962a-a9d1a631f454
+testkx, testky = (0.5, 0.5)
 
-# ╔═╡ 9cd98d3b-8f1f-4063-bd79-088a40ab389a
-first(v1), last(v1)
+# ╔═╡ 97dbb2a4-d43f-4401-a167-8862837c196f
+testV(x, y) = sinpi(4x) * cospi(2*y)
 
-# ╔═╡ c5725b36-4f18-4d5f-9d9d-35e59ea1ca77
-v1[2]
+# ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
+testH = FinDiffHamiltonian{Periodic}(testV, testxl, testyl, testkx, testky, testnx, testny)
 
-# ╔═╡ fb1aa734-894a-49e5-a111-32951d6c2557
-v1[3:4]
+# ╔═╡ 50bf1130-d60d-40d4-aea0-024af72a69bd
+# non-allocating version of Base reshape.
+# Makes no difference in benchmarking, but let's optimise just cause we can.
+reshape2(a, dims) = invoke(Base._reshape, Tuple{AbstractArray,typeof(dims)}, a, dims)
 
-# ╔═╡ 20da0774-ba3d-4867-8ff8-59aade8cd652
-for x in v1
-	print(x, " ")
-end
-
-# ╔═╡ 5a5635f7-0f89-495d-a209-8dcd36e1d3fa
-# an empty vector
-v2 = []
-
-# ╔═╡ a212baa6-d124-4a96-86b0-028caec25f55
-# append 2 to v2
-push!(v2, 2)
-
-# ╔═╡ 9c95108b-f5e6-4bd2-9bd2-3feeb378e832
-# a vector of floats
-v3 = Float64[3, 2, 1]
-
-# ╔═╡ ee522965-b92e-4dfe-8101-e4563adce105
-# apply an operation to every element (called broadcasting)
-cos.(v3) .+ 5
-
-# ╔═╡ 80db1392-37fc-4144-98eb-37a8e0eaf94d
-# a vector of zeros (also works with ones)
-zeros(5)
-
-# ╔═╡ ee1951aa-ed7a-4136-9c0a-1b613e64619c
-# a vector of random numbers between 0 and 1
-rand(5)
-
-# ╔═╡ 803b97c5-d917-4658-8882-131c5e60ade9
-squares = [x^2 for x in 1:5]
-
-# ╔═╡ e7de0378-ba5e-4a59-a058-4e5dad3af3c5
-sqidx = squares .> 5
-
-# ╔═╡ df245a2a-48a2-448f-a9a6-5427e3b6b1ec
-squares[sqidx]
-
-# ╔═╡ f9d48509-2ca0-4c27-ab9c-2de58991f05c
-md"# Our First Differential Equation"
-
-# ╔═╡ 779f13b0-38f4-4e19-9bc0-ee25d02dff1e
-@bind r_real PlutoUI.Slider(-2:0.1:2)
-
-# ╔═╡ bde5e9db-81dd-41df-b2b1-f82efb7e860a
-@bind r_imag PlutoUI.Slider(-2:0.1:2)
-
-# ╔═╡ 74ed6153-d900-47ed-9491-296da0896ddf
-r = r_real + im * r_imag
-
-# ╔═╡ 2e56e341-a50a-4ec6-b2f0-0bd5239457a8
-step(x, r, dt) = x * (1 + dt*r)
-
-# ╔═╡ 2cd09b9a-a2c6-4a39-8ee2-784603d21e1f
-y0 = 1
-
-# ╔═╡ 9c42dc5b-eba2-447c-a053-01d9984f655c
-maxt = 2π
-
-# ╔═╡ 6e11cf2a-a99c-4aca-9a6a-12d4d1f77c95
-# outputs list of y values over time
-function gen_spiral(init, r, n, t)
-	out = ComplexF64[init]  # list of values
-	y = out[1]
-	dt = t/n  # time step
-	for _ in 1:n  # n steps
-		y = step(y, r, dt)  # work out next y
-		push!(out, y)  # add y to list
-	end
-	return out
-end
-
-# ╔═╡ 906c84c3-c60c-429d-bfb8-644ef927e5de
-spiral = gen_spiral(y0, r, 1000, maxt)
-
-# ╔═╡ bc0f37ea-66f6-41b3-a44b-182cf143127e
-let fig = Figure()
-	ax = Axis(fig[1, 1]; aspect=DataAspect())
+# ╔═╡ 7af30430-cacc-4956-919c-d5707ec0cbf1
+function LinearAlgebra.mul!(
+	w::AbstractVector, H::FinDiffHamiltonian{Periodic, T}, v::AbstractVector
+) where T <: Real
 	
-	lines!(ax, real.(spiral), imag.(spiral))
+	wmat = reshape2(w, (H.nx, H.ny))
+	vmat = reshape2(v, (H.nx, H.ny))
 
-	ts = range(0, maxt, 100)
-	zs = exp.(r .* ts)
-	lines!(ax, real(zs), imag.(zs); color=Cycled(2))
+	ax = (H.nx / H.xlen)^2
+	ay = (H.ny / H.ylen)^2
+	h  = T(1//2)
 
+	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
+
+	# adding @inbounds and @simd doesn't improve performance much
+	Threads.@threads for iy in 1:H.ny
+		iyb = mod1(iy-1, H.ny)
+		iyt = mod1(iy+1, H.ny)
+
+		# left
+		H1y  = (ax * (-h) + H.kx*H.nx/H.xlen^2*π/2*im) * vmat[end, iy] + (ax +(π^2/2)/H.xlen^2*H.kx^2) * vmat[1, iy] + (ax * (-h) - H.kx*H.nx/H.xlen^2*π/2*im) * vmat[2, iy]#Kinetic energy in x-direction, including contribution from k-vector
+		H1y += (ay * (-h) + H.ky*H.ny/H.ylen^2*π/2*im) * vmat[1, iyb] + (ay + (π^2/2)/H.ylen^2*H.ky^2) * vmat[1, iy] + (ay * (-h) - H.ky*H.ny/H.ylen^2*π/2*im) * vmat[1, iyt]#Kinetic energy in y-direction, including contribution from k-vector
+		H1y += V(1, iy) * vmat[1, iy]#Potential energy term
+		wmat[1, iy] = H1y
+
+		# middle
+		for ix in 2:(H.nx-1)
+			# 10% faster not to evaluate mod1 for ix indices here
+			Hxy  = (ax * (-h) + H.kx*H.nx/H.xlen^2*π/2*im) * vmat[ix-1, iy] + (ax +(π^2/2)/H.xlen^2*H.kx^2) * vmat[ix, iy] + (ax * (-h) - H.kx*H.nx/H.xlen^2*π/2*im) * vmat[ix+1, iy]#Kinetic energy in x-direction, including contribution from k-vector
+			Hxy += (ay * (-h) + H.ky*H.ny/H.ylen^2*π/2*im) * vmat[ix, iyb] + (ay + (π^2/2)/H.ylen^2*H.ky^2) * vmat[ix, iy] + (ay * (-h) - H.ky*H.ny/H.ylen^2*π/2*im) * vmat[ix, iyt]#Kinetic energy in y-direction, including contribution from k-vector
+			Hxy += V(ix, iy) * vmat[ix, iy] #Potential energy term
+			wmat[ix, iy] = Hxy
+		end
+
+		# right
+		Hey  = (ax * (-h) + H.kx*H.nx/H.xlen^2*π/2*im) * vmat[end-1, iy] + (ax +(π^2/2)/H.xlen^2*H.kx^2) * vmat[end, iy] + (ax * (-h) - H.kx*H.nx/H.xlen^2*π/2*im) * vmat[1, iy]#Kinetic energy in x-direction
+		Hey += (ay * (-h) + H.ky*H.ny/H.ylen^2*π/2*im) * vmat[end, iyb] + (ay + (π^2/2)/H.ylen^2*H.ky^2) * vmat[end, iy] + (ay * (-h) - H.ky*H.ny/H.ylen^2*π/2*im) * vmat[end, iyt]#Kinetic energy in y-direction
+		Hey += V(H.nx, iy) * vmat[end, iy]#Potential energy term
+		wmat[end, iy] = Hey
+	end
+
+	conj(w)
+end
+
+# ╔═╡ 98600be8-5246-41b6-8100-b221e76ee818
+function Base.getindex(
+	H::FDH{Periodic, T}, (ix, iy), (jx, jy)
+) where T <: Real
+	@boundscheck begin
+		checkbounds(H, ix, iy)
+		checkbounds(H, jx, jy)
+	end
+    ax = (H.nx / H.xlen)^2
+    ay = (H.ny / H.ylen)^2
+    if ix == jx
+        if iy == jy
+            Vxy = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
+            return Complex(ax + ay +  π^2/2*(1/H.xlen^2*H.kx^2 + 1/H.ylen^2*H.ky^2)+ Vxy)
+        elseif abs(iy - jy) == 1 
+            return -ay / 2 - H.ky*H.ny/H.ylen^2*π/2*sign(iy - jy)im
+		elseif abs(iy - jy) == H.ny - 1
+			return -ay / 2 + H.ky*H.ny/H.ylen^2*π/2*sign(iy - jy)im
+        end
+    elseif iy == jy && abs(ix - jx) == 1 
+        return -ax / 2 - H.kx*H.nx/H.xlen^2*π/2*sign(ix - jx)im
+	elseif iy == jy && abs(ix - jx) == H.nx - 1
+		return -ax / 2 + H.kx*H.nx/H.xlen^2*π/2*sign(ix - jx)im
+    end
+
+    return zero(Complex)
+end
+
+# ╔═╡ fa349d2c-4db0-4293-a956-91d9cbe686b4
+function Base.getindex(H::FDH{Periodic, T}, i::Integer, j::Integer) where T <: Real
+	inds = Base.CartesianIndices((H.nx, H.ny))
+	ic = inds[i] |> Tuple
+	jc = inds[j] |> Tuple
+	return H[ic, jc]
+end
+
+# ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
+@test testH * testv ≈ Matrix(testH) * testv
+
+# ╔═╡ 2b9dce1b-22be-4448-9035-2d6804ddd4c5
+@show typeof(testH)
+
+# ╔═╡ 5133587f-265a-40a7-8d5d-08d28ccab7a7
+LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
+
+# ╔═╡ 78553187-2839-4afd-b2aa-f500a2a87b20
+@test ishermitian(testH)
+
+# ╔═╡ c42390d6-0a93-438e-b8b1-bdaf13078a8c
+@test ishermitian(Matrix(testH))
+
+# ╔═╡ 65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
+function LinearAlgebra.opnormInf(H::FDH{Periodic})
+	ax = (H.nx / H.xlen)^2
+    ay = (H.ny / H.ylen)^2
+	return maximum(CartesianIndices((H.nx, H.ny))) do i
+		ix, iy = Tuple(i)
+		Vxy = H.V((ix-1) / H.nx, (iy-1) / H.ny)
+		return abs(ax + ay + Vxy) + abs(ax) + abs(ay)
+	end
+end
+
+# ╔═╡ 70391d80-3c75-4289-9e8b-e96d21bc84e4
+mutable struct Molecular_Structure
+    length::Float64
+    width::Float64
+    positions::Vector{Tuple{Float64, Float64}}
+    speeds::Vector{Tuple{Float64, Float64}}
+    potential_function::Function
+    potential_params::Vector{Vector{Any}}
+    num_electrons::Int
+end
+
+# ╔═╡ f08bd49b-663f-49b9-816e-8e238536d502
+Base.size(ms::Molecular_Structure) = (length(ms.positions),)
+
+# ╔═╡ d36a8189-ec05-4f51-9eb1-0125332bde43
+permutedims(hcat([testH * [i == j ? 1 : 0 for i in 1:size(testH)[1]] for j in 1:size(testH)[1]]...)) - transpose(Matrix(testH))
+
+# ╔═╡ c1d6ca48-e9b5-46ac-944a-4ef6c97b0588
+Base.size(testH)
+
+# ╔═╡ ea768605-0b5b-462d-972f-fd6f2e729157
+Base.getindex(ms::Molecular_Structure, i::Int) = (ms.positions[i], ms.speeds[i])
+
+# ╔═╡ bec6b558-b794-4d7e-9dd0-fba13a4b5c61
+md"### Wave Function"
+
+# ╔═╡ 61883ba0-0da8-43ec-9f3a-e5f6367492f3
+md"### Finite Differences Hamiltonian"
+
+# ╔═╡ 1f657f58-99b6-4c15-b8e2-28e7f43d4841
+md"# Molecular dynamics calculations"
+
+# ╔═╡ 97a257f0-f329-4770-be0e-bcfa4cc1cc20
+md"In reality, both the atomic cores and the electrons in a material need to be treated quantum mechanically. However, since atomic cores are far heavier than electrons, their kinetic energy is less important - making it more accurate to approximate them as classical particles. This is what we will be doing in the following, if you're interested in the justifications and when this approximation is appropriate, look up Born-Oppenheimer approximation. 
+
+The second assumption we make is that the electrons are non-interacting. This is categorically false in reality, and if we tried to model most realistic systems with several electrons (even accounting for the fact that we're only looking at a 2d version) we'd get very wrong results. For select systems such as the H$_2^-$ ion, the description is still accurate - in all other cases, we will use effective potentials to mimic the effect of electron-electron repulsion. 
+
+We begin by defining an object which represents the ionic system with Periodic boundary conditions."
+
+# ╔═╡ b475cced-47e3-4eb3-b7fa-d4cc2163d2b9
+md"It acts as an abstract vector:"
+
+# ╔═╡ cae15917-e7cb-493e-a6d8-0637f1e1a1c2
+Base.setindex!(ms::Molecular_Structure, value::Tuple{Tuple{Float64, Float64}, Tuple{Float64, Float64}}, i::Int) = (
+    ms.positions[i] = value[1];
+    ms.speeds[i] = value[2];
+)
+
+# ╔═╡ 3acf903f-a79a-4178-bd6e-399856b37e8b
+md"The atomic cores/ions will interact with the electrons, creating a force between the two. This function evaluates that force."
+
+# ╔═╡ ae10e404-0fe5-44e9-8f66-b28ad9e468df
+function force_field(ms::Molecular_Structure)
+    return (x,y) -> begin
+        δ = 1e-8
+        total_dVdx = zeros(Float64,length(ms.positions))
+        total_dVdy = zeros(Float64,length(ms.positions))
+        for (i, (pos, params)) in enumerate(zip(ms.positions, ms.potential_params))
+            # Compute the partial derivatives numerically for each atom's potential
+            dVdx = (ms.potential_function(pos[1], pos[2], (x + δ, y), params...) - ms.potential_function(pos[1], pos[2], (x - δ, y), params...)) / (2 * δ)
+            dVdy = (ms.potential_function(pos[1], pos[2], (x, y + δ), params...) - ms.potential_function(pos[1], pos[2], (x, y - δ), params...)) / (2 * δ)
+            
+            # Sum the contributions
+            total_dVdx[i] += dVdx
+            total_dVdy[i] += dVdy
+        end
+        # The force is the negative gradient of the potential
+        return [-total_dVdx, -total_dVdy]
+    end
+end
+
+# ╔═╡ 907cb2eb-fc11-4dc1-bebc-eb3ff8bf8301
+md"There is also a force acting between the ions, which is evaluated with this function:"
+
+# ╔═╡ 490f5f38-fe28-4301-986d-4326e796bc78
+function ionic_force(ms::Molecular_Structure)
+    forcesx = zeros(Float64, length(ms.positions))
+    forcesy = zeros(Float64, length(ms.positions))
+
+    δ = 1e-8
+    for i in 1:length(ms.positions)
+        x, y = ms.positions[i]
+        
+        # Create a structure without the i-th atom
+        other_positions = [ms.positions[j] for j in 1:length(ms.positions) if j != i]
+        other_params = [ms.potential_params[j] for j in 1:length(ms.potential_params) if j != i]
+        
+        # Potential function excluding the i-th atom
+        potential_excluding_i(x, y) = sum(ms.potential_function(pos[1], pos[2], (x, y), p...) for (pos, p) in zip(other_positions, other_params))
+        
+        # Calculate the gradient of the potential function numerically
+        dVdx = (potential_excluding_i(x + δ, y) - potential_excluding_i(x - δ, y)) / (2 * δ)
+        dVdy = (potential_excluding_i(x, y + δ) - potential_excluding_i(x, y - δ)) / (2 * δ)
+        
+        # The force is the negative gradient of the potential, but we need to switch the potential from attractive (for the electrons) to repulsive (for the ions among eachother) so it cancels.
+        forcesx[i] = dVdx
+        forcesy[i] = dVdy
+    end
+    return [forcesx, forcesy]
+end
+
+# ╔═╡ 3c2d6888-33a2-4ad9-92c4-a0ea1aca6ef2
+md"It is convenient to define the potential of a single ion, and then sum over the contributions from all ions. The latter part is done in this function."
+
+# ╔═╡ 2ca31a82-7dff-4f8d-b52c-60d683997bfa
+function potential_field(ms::Molecular_Structure)
+    return (x, y) -> sum(ms.potential_function(pos[1], pos[2], (x,y), params...) for (pos, params) in zip(ms.positions, ms.potential_params))
+end
+
+# ╔═╡ a6d894b2-54a2-4ee2-95ee-54a370e120ff
+md"We define the system:"
+
+# ╔═╡ 1c392cc4-f300-4a64-bc43-4ab035fb53cf
+begin
+	NL = 25
+	NW = 25
+	
+	L = 5.0
+	W = 5.0
+
+	initial_positions = [(0.5, 0.8), (0.5,0.2)]
+	initial_velocities = [(0.0, -0.1), (0.0, 0.1)]
+	scales = [[0.01],[0.01]]
+	num_electrons = 1
+end
+
+# ╔═╡ b91ca1bd-6ae2-4b57-837d-529174f911e7
+md"Define the potential of the ions: "
+
+# ╔═╡ f1fbbdf5-4323-4bc9-93d7-65d31acc1d03
+function ionic_potential(ionx,iony,(x,y),scale)
+        return - scale/sqrt((ionx-x)^2 + (iony - y)^2 + 0.001)
+end
+
+# ╔═╡ 8491dbdd-5eca-4fb6-ab81-57e54e508c75
+md"We create our molecular structure:"
+
+# ╔═╡ aea01dfb-7569-4f06-93c1-b3f0d861930a
+mol = Molecular_Structure(L,W,initial_positions, initial_velocities, ionic_potential, scales, num_electrons)
+
+# ╔═╡ fe3e2333-2911-439a-b6da-4a6004e7fa62
+md"Because we have a periodic potential, it makes sense to think in terms of Bloch-functions. If you want to know what those are, check out the Bloch.jl notebook! 
+
+For now, this just means that in order to calculate the electronic density, which we will need to calculate the forces acting on the ions, we need to solve several Hamiltonians, at different k-points. The k-points lie on a 2d square with sides of length 1, and ideally we'd sum over infinitely many of them. Because that would be quite time-consuming, we settle for a regular grid as defined in the following function: "
+
+# ╔═╡ a6dff627-59ae-4312-9a69-f603fac17b38
+function gridmaker(Nx, Ny)
+	tuple([[i/Nx, j/Ny] for i in 0:Nx for j in 0:Ny]...)
+end
+
+# ╔═╡ 28d6afcf-bd5a-4673-a638-4510dd1b3bf9
+regrid = gridmaker(2,2)
+
+# ╔═╡ 74035528-e0d7-4ec9-bf3a-d2d7848f05fd
+md"Now that we have a grid on which to calculate our k-points, we want a function to calculate the charge densities. For every 'level' of energy in the system - what is called an energy-band - there is an associated charge density. Two electrons can not occupy the same level, so they get stacked on top of each other. If we have 2 electrons in our system, we need to sum over the charge density of the first two energy levels. We specify this with the variable NELECT. "
+
+# ╔═╡ dfea351e-a9f2-4d03-8aa4-52819afe7f3c
+function calculate_band_charges(Molecule, grid, NL, NW)
+    #This function calculates the charge density of the system. 
+	#Molecule is an object of type molecular structure. Here we only need it to define the Hamiltonian for our electrons. 
+	NELECT = Molecule.num_electrons
+	if NELECT > NL*NW
+		NELECT = NL*NW
+	end
+    dens = zeros(NL*NW,NELECT)
+    kdens = zeros(NL*NW,NELECT)
+    for i in 1:size(grid,1)
+        H = Hermitian(FinDiffHamiltonian{Periodic}(potential_field(Molecule), Molecule.length, Molecule.width, grid[i][1], grid[i][2], NL, NW))
+        kdens = eigen(H, 1:NELECT).vectors
+		for j in 1:NELECT
+			kdens[:,j] = abs2.(kdens[:,j])
+		end
+		dens += Real.(kdens)
+    end
+    return sum(dens; dims=2)
+end
+
+# ╔═╡ 2cbcd88f-8b72-49d6-bd9e-7bf22ebe205d
+V1 = potential_field(mol)
+
+# ╔═╡ 6d0e4053-7e00-4f21-a074-e9d743427723
+chrg1 = calculate_band_charges(mol, regrid, NL, NW)
+
+# ╔═╡ 9e0322d7-89d3-426e-be99-4d8fbf3818fb
+let fig = Figure()
+	wft = chrg1
+	ax = Axis(fig[1, 1]; aspect=L/W)
+	hidedecorations!(ax)
+	hidespines!(ax)
+
+	xs = range(0; step=L/NL, length=NL)
+	ys = range(0; step=W/NW, length=NW)
+	heatmap!(ax, xs, ys, reshape(abs2.(wft), (NL, NL)))
+	
+	Vs = [V1(x/L, y/W) for x in xs, y in ys]
+	contour!(ax, xs, ys, Vs; color=:white)
+	
 	fig
 end
+
+# ╔═╡ 7698b021-8003-4f8d-a938-64836c047668
+md"Now that we have our molecular structure, we want to propagate it in time! We need another function, that takes the ionic structure, and the charge density, and calculates the total forces on the ions. "
+
+# ╔═╡ 55e101e3-2329-4845-8fc7-7aac45f5680a
+function Force_Calculator(F::Function, density)
+    #We calculate the Hellman-Feynmann forces, which are the expectation value of the derivative of the Hamiltonian with respect the state. In the Born-Oppenheimer approximation we assume that the system is always in the ground state, and we have a slater determinant of the NELECT eigenstates corresponding to the lowest energy eigenvalues. We don't actually have to calculate this, since the expectation value is just the integral over the derivative of the external potential with the density, which can be calculated as the sum of the densities of the single orbitals. Therefore, all we need are the derivative with respect to the potential and the NELECT lowest eigenvectors. 
+    sum(F(x/NL*L,y/NW*W)*density[x+(y-1)*NL] for x in 1:NL for y in 1:NW)
+end
+
+# ╔═╡ 1da67fb4-cfa0-454d-bbf3-594cee7243b9
+md"This function takes a molecular structure, and a timestep (as well as the grid-numbers for the electronic wavefunction) and propagates the molecular structure by one time step. "
+
+# ╔═╡ 690a299e-d664-4fdc-8e4c-d9adedb03aed
+function propagate(ms::Molecular_Structure, timestep::Float64, NL, NW,density)
+    # We use the Leap-frog algorithm to update the positions and speeds at every time step. 
+    ms.positions = [ (mod(x + vx * timestep, ms.length), mod(y + vy * timestep,ms.width)) for ((x, y), (vx, vy)) in zip(ms.positions, ms.speeds) ]
+    ms.speeds = [ (vx + fx*timestep, vy + fy*timestep) for ((fx, fy), (vx, vy)) in zip(ionic_force(ms) + Force_Calculator(force_field(ms), density), ms.speeds) ]
+    return ms
+end
+
+# ╔═╡ 2f107914-b129-423e-8270-86d40c44d20e
+md"We can now propagate the structure by one time step. Every time the cell below is executed, the molecular structure is updated, and the simulation advances by a single time step."
+
+# ╔═╡ b87fc94c-4727-419f-9bf6-9548c1334082
+begin
+chrg = calculate_band_charges(mol,regrid,NL,NW)
+V = potential_field(mol)
+propagate(mol,0.1,NL,NW,chrg)
+end
+
+# ╔═╡ 9f5ede07-7052-436f-9d09-43ad10100e5f
+let fig = Figure()
+	wft = chrg
+	ax = Axis(fig[1, 1]; aspect=L/W)
+	hidedecorations!(ax)
+	hidespines!(ax)
+
+	xs = range(0; step=L/NL, length=NL)
+	ys = range(0; step=W/NW, length=NW)
+	heatmap!(ax, xs, ys, reshape(abs2.(wft), (NL, NL)))
+	
+	Vs = [V(x/L, y/W) for x in xs, y in ys]
+	contour!(ax, xs, ys, Vs; color=:white)
+	
+	fig
+end
+
+# ╔═╡ 2a3f43d9-e699-4662-bac9-218667a9bbc1
+md"While refreshing to advance a single time step has its charm, we really want to calculate an entire time-series and then plot the result."
+
+# ╔═╡ 7e973ed4-5954-4d4c-bb03-9a4e055c4f54
+function advance(mol, NL, NW, regrid)
+	chrg = calculate_band_charges(mol,regrid,NL,NW)
+	V = potential_field(mol)
+	propagate(mol,0.05,NL,NW,chrg)
+	xs = range(0; step=L/NL, length=NL)
+	ys = range(0; step=W/NW, length=NW)
+	return reshape(abs2.(chrg), (NL, NL)), [V(x/L, y/W) for x in xs, y in ys]
+end
+
+# ╔═╡ 5b3256ad-8e18-4005-8947-29c39eabaf64
+chargedata = []
+
+# ╔═╡ bc254a1f-a203-426e-aab3-a1aa6d4168cb
+potentialdata = []
+
+# ╔═╡ 9743111b-b642-491b-87f7-d6536a5908ab
+function play(endofplay)
+	chargedata = []
+	potentialdata = []#This deletes the previous entries
+	for i in 1:endofplay
+	stepc, stepv = advance(mol,NL,NW,regrid)
+	push!(chargedata,stepc)
+	push!(potentialdata,stepv)
+	end
+end
+
+# ╔═╡ 01354cb3-2ef9-4c04-ab44-9372b0039111
+play(200)
+
+# ╔═╡ 99f7eb04-8073-4ffd-ad4a-d40a76e777ad
+@bind time Slider(range(1, 200; length=200))
+
+# ╔═╡ 2c4c72eb-526b-489f-a055-c293639b88f1
+let fig = Figure()
+	tim = Int(time)
+	print(tim)
+	ax = Axis(fig[1, 1]; aspect=L/W)
+	hidedecorations!(ax)
+	hidespines!(ax)
+
+	xs = range(0; step=L/NL, length=NL)
+	ys = range(0; step=W/NW, length=NW)
+	heatmap!(ax, xs, ys, chargedata[tim])
+	
+	contour!(ax, xs, ys, potentialdata[tim]; color=:white)
+	
+	fig
+end
+
+# ╔═╡ 7e91e705-f345-427c-9e8a-c41f13cc046a
+md"In principle we could already try to do Molecular dynamics like this for more than one electron, but we would not get good results. You can tell by the fact that the electron is simply localised at both cores, and there is no density between them. In reality, the density between the cores is increased, due to the antisymmetric nature of the wave-function. "
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+KrylovKit = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PlutoTest = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 GLMakie = "~0.10.3"
+KrylovKit = "~0.8.1"
+PlutoTest = "~0.2.2"
 PlutoUI = "~0.7.59"
 """
 
@@ -444,9 +556,9 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "0283ffd3a4350efb49827b84a5c232ce6c7f14ce"
+project_hash = "3e76eb8f10bd0cb493025ff8c2a5c6e0894d9750"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -609,7 +721,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -827,6 +939,12 @@ deps = ["ColorTypes", "Colors", "FileIO", "FixedPointNumbers", "FreeTypeAbstract
 git-tree-sha1 = "4e351a8ce824acea8dcefcd6cfe0cd8c2ea130e3"
 uuid = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 version = "0.10.3"
+
+[[deps.GPUArraysCore]]
+deps = ["Adapt"]
+git-tree-sha1 = "ec632f177c0d990e64d955ccc1b8c04c485a0950"
+uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
+version = "0.1.6"
 
 [[deps.GeoInterface]]
 deps = ["Extents"]
@@ -1046,6 +1164,16 @@ deps = ["Distributions", "DocStringExtensions", "FFTW", "Interpolations", "Stats
 git-tree-sha1 = "7d703202e65efa1369de1279c162b915e245eed1"
 uuid = "5ab0869b-81aa-558d-bb23-cbf5423bbe9b"
 version = "0.6.9"
+
+[[deps.KrylovKit]]
+deps = ["GPUArraysCore", "LinearAlgebra", "PackageExtensionCompat", "Printf", "VectorInterface"]
+git-tree-sha1 = "3c2a016489c38f35160a246c91a3f3353c47bb68"
+uuid = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
+version = "0.8.1"
+weakdeps = ["ChainRulesCore"]
+
+    [deps.KrylovKit.extensions]
+    KrylovKitChainRulesCoreExt = "ChainRulesCore"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1349,6 +1477,12 @@ git-tree-sha1 = "67186a2bc9a90f9f85ff3cc8277868961fb57cbd"
 uuid = "f57f5aa1-a3ce-4bc8-8ab9-96f992907883"
 version = "0.4.3"
 
+[[deps.PackageExtensionCompat]]
+git-tree-sha1 = "fb28e33b8a95c4cee25ce296c817d89cc2e53518"
+uuid = "65ce6f38-6b18-4e1d-a461-8949797d7930"
+version = "1.0.2"
+weakdeps = ["Requires", "TOML"]
+
 [[deps.Packing]]
 deps = ["GeometryBasics"]
 git-tree-sha1 = "ec3edfe723df33528e085e632414499f26650501"
@@ -1389,6 +1523,12 @@ deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random"
 git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
 version = "1.4.1"
+
+[[deps.PlutoTest]]
+deps = ["HypertextLiteral", "InteractiveUtils", "Markdown", "Test"]
+git-tree-sha1 = "17aa9b81106e661cffa1c4c36c17ee1c50a86eda"
+uuid = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
+version = "0.2.2"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
@@ -1632,18 +1772,13 @@ deps = ["ConstructionBase", "DataAPI", "Tables"]
 git-tree-sha1 = "f4dc295e983502292c4c3f951dbb4e985e35b3be"
 uuid = "09ab397b-f2b6-538f-b94a-2f83cf4a842a"
 version = "0.6.18"
+weakdeps = ["Adapt", "GPUArraysCore", "SparseArrays", "StaticArrays"]
 
     [deps.StructArrays.extensions]
     StructArraysAdaptExt = "Adapt"
     StructArraysGPUArraysCoreExt = "GPUArraysCore"
     StructArraysSparseArraysExt = "SparseArrays"
     StructArraysStaticArraysExt = "StaticArrays"
-
-    [deps.StructArrays.weakdeps]
-    Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
-    GPUArraysCore = "46192b85-c4d5-4398-a991-12ede77f4527"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
@@ -1742,6 +1877,12 @@ version = "1.20.0"
     [deps.Unitful.weakdeps]
     ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
     InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
+
+[[deps.VectorInterface]]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "7aff7d62bffad9bba9928eb6ab55226b32a351eb"
+uuid = "409d34a3-91d5-4945-b6ec-7529ddf182d8"
+version = "0.4.6"
 
 [[deps.WoodburyMatrices]]
 deps = ["LinearAlgebra", "SparseArrays"]
@@ -1921,110 +2062,82 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═691ec055-4906-4de6-acc7-86aeb66921b0
-# ╠═fecc4dc0-1957-4034-8685-3deb4b4c1acc
-# ╟─153e778c-ed7d-4caa-8653-de89b586fe20
-# ╠═829793b8-35ff-11ef-0499-b5ddc4165a27
-# ╠═4fb20823-d20c-4d0d-8568-e3bb6cca0a28
-# ╠═dc8bd2b8-4bc7-42eb-acb8-f06432bace8f
-# ╟─256e150c-477b-4b9e-8a93-3300ec7f4ae9
-# ╠═59fa4f07-8ba9-414d-8f6a-60dc9976ce43
-# ╟─a8880925-bd5e-4029-aefa-ab48ffb93b3d
-# ╠═60a369ef-6df6-4609-95e0-b3165519bf3d
-# ╠═3b03ea09-d82b-499a-a3f3-e9cff282938f
-# ╠═ea19e5f6-c0a4-424d-9410-d7919ce37b8b
-# ╠═5edb0bb9-0d6c-419e-af39-38cf469ae0df
-# ╠═8a6fc8de-f385-4bda-a97a-5de362a8e4dd
-# ╠═84f0c0a7-2523-4386-af53-71edc5b5e944
-# ╟─ecbe28b1-8feb-4250-9fa9-6f996bb693b6
-# ╠═14ff863e-6c7b-4279-a1dd-769a88054b09
-# ╠═4835b6d5-9e83-48dd-ac97-cab97fba7191
-# ╠═31556d1a-e942-45b0-99fd-4d2d23c86e9a
-# ╟─7d6f083c-2aa3-48c3-8851-69cea093fbca
-# ╠═f458db5f-f542-4fc5-bd6a-5578376826ca
-# ╠═7b1959de-5688-4823-9d70-cb45c1572d54
-# ╠═1d3ba3ad-64a6-4c5d-aff6-0d793e152278
-# ╠═427e39c4-3562-4177-a91f-009ca839b68b
-# ╠═81332da4-935b-49a3-a043-c5446ee4df8c
-# ╠═484a5290-bc90-4665-ab09-b8b9cd7f07ca
-# ╟─31c0f532-bc5c-4cd0-b157-1959f2d44204
-# ╠═b2b8ab10-9963-4565-85da-490ba2ee6885
-# ╠═f3efba21-1aab-4a13-9509-9d45fe5161be
-# ╠═07525873-366a-4b2c-8710-ea98962365c2
-# ╠═6faa0256-1190-45b3-82e7-14ff2ffb25ed
-# ╟─a5235c20-b927-4a24-b2e7-a350209ac8df
-# ╠═ebefa4fd-d15e-4652-9caf-2662d1edd62b
-# ╠═a6dd4796-d36f-4a13-9ee5-327a9695ef18
-# ╠═87e2c807-b2f2-4aed-ac6a-d8546d08fc9a
-# ╠═999d6dde-128c-4c1c-8b52-e79e58c48788
-# ╠═ba030427-5039-41c1-931a-0c8608bc8812
-# ╠═24590d77-c80b-4e2f-9d40-fa45ab09ef7c
-# ╠═16820ac7-a170-4fd1-bea0-ec74c42b189d
-# ╠═6f1dc7fc-a81e-4f92-9952-abda25dd247c
-# ╠═1f3d1df8-ba70-468d-806f-f52fb29692d9
-# ╠═a0f56171-fae4-4fd9-a60f-a97ce18df330
-# ╠═d6091835-c724-4a0c-b31e-e8747fc70639
-# ╠═08c38122-1ff5-4fa6-a063-aa5a9a661444
-# ╠═4dea5df4-ffcb-4f3e-9b6e-31123f4393dd
-# ╠═f449f7e2-ac0a-4fa1-b43d-96a69007e051
-# ╠═505dd190-4b7f-4a4f-899e-d2153b558e37
-# ╠═641772f9-e782-4ab8-8759-0afc2553fcb5
-# ╟─d0badf93-5a98-4ea7-8bb1-433e3bec0cd2
-# ╠═a50c7532-b7af-4013-988c-4e60e32a2eaf
-# ╠═831532cc-85bf-4f50-b597-430b4f6104dd
-# ╠═84829f97-4a82-497a-8413-406633935d0f
-# ╠═f0167868-0a88-46a3-b774-034d16aea14f
-# ╠═17735315-181e-4aa6-a3eb-dea6748cef92
-# ╠═39d47efa-4791-4b4a-9e7f-4c64a5919faa
-# ╠═2374b2df-528b-4ff3-a0b3-6b6dee1e88d9
-# ╟─fc56d53a-4109-43b0-80fe-5b3b4561d5ea
-# ╟─d84fa26d-f5d4-423b-81c8-c0603309eb72
-# ╠═df975096-98c9-4135-ab3d-802b5a870d6f
-# ╠═839e13d9-434e-4834-99cf-1cc030671a3f
-# ╠═bab636c3-7d4e-4016-a933-8d84664ec69a
-# ╠═2481044a-88da-4c4f-b141-34a55b850eb8
-# ╠═bd20b6f2-05f2-4c13-b908-10d11657b452
-# ╠═cc0c6013-7693-45ab-819a-77df1f2f21bd
-# ╠═4fd9df31-5b59-40b3-87f5-06cf54e235d3
-# ╠═d96280f5-eaeb-4c78-a5d9-589254dd1acd
-# ╟─42dce2dc-f43d-44b7-9578-dda6baa8a8be
-# ╠═89a274f1-4e50-41eb-8569-714dd3ec1a5f
-# ╠═53c481e3-6b98-46b3-815a-423f5856926d
-# ╟─b1b19b64-b5cc-4a74-92e7-70dcee6218cf
-# ╠═4169b9c1-fc55-45a8-938a-1940d634dac0
-# ╟─1ad0b912-0d67-4e5f-a9a9-ec1d41ce3bb4
-# ╠═adee7e99-e2f5-44c2-a3c0-19ea858b60d2
-# ╟─9fede230-4e5b-413a-acde-8bc5ad375c23
-# ╠═0aa8959e-f90d-4404-bf3c-64c24196eb5e
-# ╠═e3567900-ce53-4381-827c-9c8db99d2df7
-# ╟─33c8a68f-a7ae-4a94-9774-9178b4556b0b
-# ╠═baf07f20-d4d7-4451-9f08-4551f65331ce
-# ╠═5da40376-b68d-49e1-b2a6-4676b6ba31b2
-# ╠═2ef0d503-d8e1-4351-bdb9-c2ab98faef58
-# ╠═6ec59e0f-b3d9-4105-9960-64b3455adede
-# ╠═958ff51e-3ce2-4d96-9776-98da9cd78d0a
-# ╠═9cd98d3b-8f1f-4063-bd79-088a40ab389a
-# ╠═c5725b36-4f18-4d5f-9d9d-35e59ea1ca77
-# ╠═fb1aa734-894a-49e5-a111-32951d6c2557
-# ╠═20da0774-ba3d-4867-8ff8-59aade8cd652
-# ╠═5a5635f7-0f89-495d-a209-8dcd36e1d3fa
-# ╠═a212baa6-d124-4a96-86b0-028caec25f55
-# ╠═9c95108b-f5e6-4bd2-9bd2-3feeb378e832
-# ╠═ee522965-b92e-4dfe-8101-e4563adce105
-# ╠═80db1392-37fc-4144-98eb-37a8e0eaf94d
-# ╠═ee1951aa-ed7a-4136-9c0a-1b613e64619c
-# ╠═803b97c5-d917-4658-8882-131c5e60ade9
-# ╠═e7de0378-ba5e-4a59-a058-4e5dad3af3c5
-# ╠═df245a2a-48a2-448f-a9a6-5427e3b6b1ec
-# ╟─f9d48509-2ca0-4c27-ab9c-2de58991f05c
-# ╠═779f13b0-38f4-4e19-9bc0-ee25d02dff1e
-# ╠═bde5e9db-81dd-41df-b2b1-f82efb7e860a
-# ╠═74ed6153-d900-47ed-9491-296da0896ddf
-# ╠═2e56e341-a50a-4ec6-b2f0-0bd5239457a8
-# ╠═2cd09b9a-a2c6-4a39-8ee2-784603d21e1f
-# ╠═9c42dc5b-eba2-447c-a053-01d9984f655c
-# ╠═6e11cf2a-a99c-4aca-9a6a-12d4d1f77c95
-# ╠═906c84c3-c60c-429d-bfb8-644ef927e5de
-# ╠═bc0f37ea-66f6-41b3-a44b-182cf143127e
+# ╠═dcbacb58-a77d-4ec2-aa10-bf6b72d5f33e
+# ╠═e22afb18-acbe-49ec-8b0f-0d5d311b9e09
+# ╠═f49b5d6e-464f-49d0-a3f2-1af2084d6dc2
+# ╠═30a856d7-01f1-411a-ab26-589dfbed9a73
+# ╠═52aaf95c-818a-495b-86c3-d1cc73f60033
+# ╠═edbc5861-96b0-4d29-b158-f60f82c77f37
+# ╠═896a6291-0027-4849-85cf-43e05082e5a8
+# ╟─bec6b558-b794-4d7e-9dd0-fba13a4b5c61
+# ╠═51954bdb-3cd7-428e-a7ad-7a02be2f06b4
+# ╠═504fa869-0faa-4f0c-943a-94dd1b57757b
+# ╠═e6a95c73-cc53-4323-a033-afb10b5511c3
+# ╠═44773e3c-37e1-4c1f-a859-c20943edd5f2
+# ╠═989bbaf8-f3e1-4c0e-941b-25480bbcb272
+# ╟─61883ba0-0da8-43ec-9f3a-e5f6367492f3
+# ╠═e4abdbe5-9da6-4454-9817-d97cbc471c93
+# ╟─9e7c66f3-a2f2-4470-bd7b-651963a8ad77
+# ╠═c23f8ec1-694a-473e-8486-f854aaadcc62
+# ╠═a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
+# ╠═f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
+# ╠═74930cbb-7b22-49aa-962a-a9d1a631f454
+# ╠═97dbb2a4-d43f-4401-a167-8862837c196f
+# ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
+# ╟─50bf1130-d60d-40d4-aea0-024af72a69bd
+# ╟─7af30430-cacc-4956-919c-d5707ec0cbf1
+# ╟─98600be8-5246-41b6-8100-b221e76ee818
+# ╟─fa349d2c-4db0-4293-a956-91d9cbe686b4
+# ╠═2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
+# ╠═d36a8189-ec05-4f51-9eb1-0125332bde43
+# ╠═c1d6ca48-e9b5-46ac-944a-4ef6c97b0588
+# ╠═2b9dce1b-22be-4448-9035-2d6804ddd4c5
+# ╠═5133587f-265a-40a7-8d5d-08d28ccab7a7
+# ╠═78553187-2839-4afd-b2aa-f500a2a87b20
+# ╠═c42390d6-0a93-438e-b8b1-bdaf13078a8c
+# ╠═65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
+# ╟─1f657f58-99b6-4c15-b8e2-28e7f43d4841
+# ╟─97a257f0-f329-4770-be0e-bcfa4cc1cc20
+# ╠═70391d80-3c75-4289-9e8b-e96d21bc84e4
+# ╟─b475cced-47e3-4eb3-b7fa-d4cc2163d2b9
+# ╠═f08bd49b-663f-49b9-816e-8e238536d502
+# ╠═ea768605-0b5b-462d-972f-fd6f2e729157
+# ╠═cae15917-e7cb-493e-a6d8-0637f1e1a1c2
+# ╟─3acf903f-a79a-4178-bd6e-399856b37e8b
+# ╠═ae10e404-0fe5-44e9-8f66-b28ad9e468df
+# ╟─907cb2eb-fc11-4dc1-bebc-eb3ff8bf8301
+# ╠═490f5f38-fe28-4301-986d-4326e796bc78
+# ╟─3c2d6888-33a2-4ad9-92c4-a0ea1aca6ef2
+# ╠═2ca31a82-7dff-4f8d-b52c-60d683997bfa
+# ╟─a6d894b2-54a2-4ee2-95ee-54a370e120ff
+# ╠═1c392cc4-f300-4a64-bc43-4ab035fb53cf
+# ╟─b91ca1bd-6ae2-4b57-837d-529174f911e7
+# ╠═f1fbbdf5-4323-4bc9-93d7-65d31acc1d03
+# ╟─8491dbdd-5eca-4fb6-ab81-57e54e508c75
+# ╠═aea01dfb-7569-4f06-93c1-b3f0d861930a
+# ╟─fe3e2333-2911-439a-b6da-4a6004e7fa62
+# ╠═a6dff627-59ae-4312-9a69-f603fac17b38
+# ╠═28d6afcf-bd5a-4673-a638-4510dd1b3bf9
+# ╟─74035528-e0d7-4ec9-bf3a-d2d7848f05fd
+# ╠═dfea351e-a9f2-4d03-8aa4-52819afe7f3c
+# ╠═2cbcd88f-8b72-49d6-bd9e-7bf22ebe205d
+# ╠═6d0e4053-7e00-4f21-a074-e9d743427723
+# ╠═9e0322d7-89d3-426e-be99-4d8fbf3818fb
+# ╟─7698b021-8003-4f8d-a938-64836c047668
+# ╠═55e101e3-2329-4845-8fc7-7aac45f5680a
+# ╟─1da67fb4-cfa0-454d-bbf3-594cee7243b9
+# ╠═690a299e-d664-4fdc-8e4c-d9adedb03aed
+# ╟─2f107914-b129-423e-8270-86d40c44d20e
+# ╠═b87fc94c-4727-419f-9bf6-9548c1334082
+# ╠═9f5ede07-7052-436f-9d09-43ad10100e5f
+# ╟─2a3f43d9-e699-4662-bac9-218667a9bbc1
+# ╠═7e973ed4-5954-4d4c-bb03-9a4e055c4f54
+# ╠═5b3256ad-8e18-4005-8947-29c39eabaf64
+# ╠═bc254a1f-a203-426e-aab3-a1aa6d4168cb
+# ╠═9743111b-b642-491b-87f7-d6536a5908ab
+# ╠═01354cb3-2ef9-4c04-ab44-9372b0039111
+# ╠═99f7eb04-8073-4ffd-ad4a-d40a76e777ad
+# ╠═2c4c72eb-526b-489f-a055-c293639b88f1
+# ╟─7e91e705-f345-427c-9e8a-c41f13cc046a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
