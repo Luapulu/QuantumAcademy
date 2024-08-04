@@ -1,5 +1,4 @@
 ### A Pluto.jl notebook ###
-
 # v0.19.40
 
 using Markdown
@@ -17,7 +16,7 @@ end
 
 # ╔═╡ e22afb18-acbe-49ec-8b0f-0d5d311b9e09
 begin
-	import LinearAlgebra
+	import LinearAlgebra  # overload mul!, ishermitian, etc.
 	using LinearAlgebra
 end
 
@@ -25,27 +24,39 @@ end
 using PlutoTest
 
 # ╔═╡ 30a856d7-01f1-411a-ab26-589dfbed9a73
-using PlutoUI: Slider
+using PlutoUI: Slider  # interactive slider
 
 # ╔═╡ 52aaf95c-818a-495b-86c3-d1cc73f60033
-using Base: Callable
+using Base: Callable  # alias for something function-like
 
 # ╔═╡ edbc5861-96b0-4d29-b158-f60f82c77f37
-using KrylovKit
+using KrylovKit  # Krylov methods for large matrices
 
 # ╔═╡ 896a6291-0027-4849-85cf-43e05082e5a8
-using GLMakie
+using GLMakie  # plotting
+
+# ╔═╡ 862c6632-75d4-4321-9c64-a735e5e5c124
+using BenchmarkTools
+
+# ╔═╡ 271148a8-5410-46b9-a743-46bb18199b3d
+using FFTW
 
 # ╔═╡ dcbacb58-a77d-4ec2-aa10-bf6b72d5f33e
-import Base
+import Base  # overload base functions like getindex
 
 # ╔═╡ 51954bdb-3cd7-428e-a7ad-7a02be2f06b4
-function wavefunction(ψ, nx, ny; normalise=true)
-    rx = range(0; step=1/nx, length=nx)
-    ry = range(0;  step=1/ny,  length=ny)
-    mat = [ψ(x, y) for x in rx, y in ry]
-    normalise && normalize!(mat)
-    return mat
+begin  # creates a matrix representing the wavefunction evaluated on an nx by ny grid
+	function wavefunction(ψ, ::Type{T}, nx, ny; normalise=true) where T
+	    rx = range(0; step=1/nx, length=nx)
+	    ry = range(0;  step=1/ny,  length=ny)
+	    mat = T[ψ(x, y) for x in rx, y in ry]
+	    normalise && normalize!(mat)
+	    return mat
+	end
+
+	function wavefunction(ψ, nx, ny; normalise=true)
+		wavefunction(ψ, ComplexF64, nx, ny; normalise=normalise)
+	end
 end
 
 # ╔═╡ 504fa869-0faa-4f0c-943a-94dd1b57757b
@@ -69,8 +80,11 @@ begin
 	struct Box <: BoundaryCondition end
 end
 
+# ╔═╡ f8a3d038-07ea-456a-9b57-b1332352bd5d
+
+
 # ╔═╡ 9e7c66f3-a2f2-4470-bd7b-651963a8ad77
-begin
+begin  # matrix type to represent the Hamiltonian
 	struct FinDiffHamiltonian{
 	    BC <: BoundaryCondition,
 	    T <: Real,
@@ -90,6 +104,7 @@ begin
 		end
 	end
 
+	# Some convenience methods to construct the Hamiltonian
 	function FinDiffHamiltonian{BC, T}(V::F, xlen, ylen, nx, ny) where {
 		BC <: BoundaryCondition, T <: Real, F <: Callable
 	}
@@ -104,8 +119,10 @@ begin
 end
 
 # ╔═╡ c23f8ec1-694a-473e-8486-f854aaadcc62
-const FDH = FinDiffHamiltonian
+const FDH = FinDiffHamiltonian  # alias FDH for FinDiffHamiltonian
 
+# ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
+Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
 
 # ╔═╡ f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
 testxl, testyl = (3.5, 8.0)
@@ -113,34 +130,31 @@ testxl, testyl = (3.5, 8.0)
 # ╔═╡ 97dbb2a4-d43f-4401-a167-8862837c196f
 testV(x, y) = sinpi(4x) * cospi(2*y)
 
-# ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
-testH = FinDiffHamiltonian{Periodic}(testV, testxl, testyl, testnx, testny)
-
-
-# ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
-Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
-
 # ╔═╡ 50bf1130-d60d-40d4-aea0-024af72a69bd
 # non-allocating version of Base reshape.
 # Makes no difference in benchmarking, but let's optimise just cause we can.
 reshape2(a, dims) = invoke(Base._reshape, Tuple{AbstractArray,typeof(dims)}, a, dims)
 
 # ╔═╡ 7af30430-cacc-4956-919c-d5707ec0cbf1
-function LinearAlgebra.mul!(
+function LinearAlgebra.mul!(  #multiply H with v and write result into w
 	w::AbstractVector, H::FinDiffHamiltonian{Periodic, T}, v::AbstractVector
 ) where T <: Real
-	
+	# reshape to matrix for convenient indexing
 	wmat = reshape2(w, (H.nx, H.ny))
 	vmat = reshape2(v, (H.nx, H.ny))
 
+	# numerical factors
 	ax = (H.nx / H.xlen)^2
 	ay = (H.ny / H.ylen)^2
-	h  = T(1//2)
-
+	h  = T(1/2)
+	
+	# convenience method to evaluate potential at grid point (ix, iy)
 	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
 
 	# adding @inbounds and @simd doesn't improve performance much
+	# loop doesn't depend on execution order => multithreading possible => much faster
 	Threads.@threads for iy in 1:H.ny
+		# mod1 accounts for periodic boundary conditions
 		iyb = mod1(iy-1, H.ny)
 		iyt = mod1(iy+1, H.ny)
 
@@ -173,7 +187,8 @@ end
 function Base.getindex(
 	H::FDH{Periodic, T}, (ix, iy), (jx, jy)
 ) where T <: Real
-	@boundscheck begin
+	# @boundscheck macro allows caller to elide boundschecking by using @inbounds
+	@boundscheck begin  # checkbounds throws error if index <= 0 or > H.nx * H.ny
 		checkbounds(H, ix, iy)
 		checkbounds(H, jx, jy)
 	end
@@ -196,7 +211,7 @@ end
 # ╔═╡ fa349d2c-4db0-4293-a956-91d9cbe686b4
 function Base.getindex(H::FDH{Periodic, T}, i::Integer, j::Integer) where T <: Real
 	inds = Base.CartesianIndices((H.nx, H.ny))
-	ic = inds[i] |> Tuple
+	ic = inds[i] |> Tuple  # converts CartesianIndex(ix, iy) to Tuple: (ix, iy)
 	jc = inds[j] |> Tuple
 	return H[ic, jc]
 end
@@ -207,9 +222,13 @@ md"### Wave Function"
 # ╔═╡ 61883ba0-0da8-43ec-9f3a-e5f6367492f3
 md"### Finite Differences Hamiltonian"
 
-# ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
-@test testH * testv ≈ Matrix(testH) * testv
+# ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
+testH = FinDiffHamiltonian{Periodic}(testV, testxl, testyl, testnx, testny)
 
+# ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
+# compare the above mul! implementation to builtin matrix multiplication for Matrix
+# Matrix(testH) is built using getindex to get elements of the matrix
+@test testH * testv ≈ Matrix(testH) * testv
 
 # ╔═╡ 5133587f-265a-40a7-8d5d-08d28ccab7a7
 LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
@@ -221,11 +240,14 @@ LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
 @test ishermitian(Matrix(testH))
 
 # ╔═╡ 5e6fb2f7-ba1c-4872-b0ca-a0f120d6eaed
-let x = rand(testnn), y = rand(testnn)
+let x = randn(testnn), y = randn(testnn)  # test symmetric
 	@test dot(x, testH * y) ≈ dot(y, testH * x) ≈ dot(y, testH, x) ≈ dot(x, testH, y)
 end
 
 # ╔═╡ 65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
+# Some Krylov libraries require an estimate of the supremeum operator norm of H
+# This is a more efficient implementation than the default
+# See docs for opnorm in the LinearAlgebra docs
 function LinearAlgebra.opnormInf(H::FDH{Periodic})
 	ax = (H.nx / H.xlen)^2
     ay = (H.ny / H.ylen)^2
@@ -237,13 +259,31 @@ function LinearAlgebra.opnormInf(H::FDH{Periodic})
 end
 
 # ╔═╡ 4a41cf38-7259-4316-be29-703ea0e3101a
-@test opnorm(testH, Inf) ≈ opnorm(Matrix(testH), Inf)
+@test opnorm(testH, Inf) ≈ opnorm(Matrix(testH), Inf)  # compare to fallback method
 
 # ╔═╡ a1c8fa54-57d4-4ae1-b775-8522b8c2090d
 md"### Even-Odd Splitting"
 
 # ╔═╡ b9ea4c05-5018-4421-b43b-c1bf43ecee32
 struct EvenOddSplit end
+
+# ╔═╡ 12f29c4f-69fc-4d83-88d6-4d7b030ad8eb
+lower_even(x) = 2 * (cld(x, 2) - 1)
+
+# ╔═╡ b367f95e-7e48-40b5-bae0-b0ef059e865a
+@test lower_even(5) == 4
+
+# ╔═╡ d83ee165-b1a1-4579-aec4-71c2706c779c
+@test lower_even(6) == 4
+
+# ╔═╡ a47b596c-97de-4259-822e-cb6fb9f4e09c
+lower_odd(x) = 2 * fld(x, 2) - 1
+
+# ╔═╡ bdc007ae-8020-47ed-9279-456dcd8004ef
+@test lower_odd(4) == 3
+
+# ╔═╡ 7b054a8a-8e90-4d98-bc29-b55ecac88520
+@test lower_odd(5) == 3
 
 # ╔═╡ c3cb2999-66af-4e6f-afa7-ac19d844dce6
 # ╠═╡ disabled = true
@@ -257,15 +297,125 @@ function step!(
 	wmat = reshape(w, (H.nx, H.ny))
 	vmat = reshape(v, (H.nx, H.ny))
 
+	h  = T(1/2)
+	
 	ax = (H.nx / H.xlen)^2
+	cisx = cis(-h * ax * dt)
+	upx = (1 + cisx) / 2
+	umx = (1 - cisx) / 2
+
+	nxodd  = lower_odd(H.nx)
+	nxeven = lower_even(H.nx)
+	
 	ay = (H.ny / H.ylen)^2
-	h  = T(1//2)
+	cisy = cis(-h * ay * dt)
+	upy = (1 + cisy) / 2
+	umy = (1 - cisy) / 2
+
+	nyodd  = lower_odd(H.ny)
+	nyeven = lower_even(H.ny)
 
 	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
 
+	# mix x odd
+	for iy in 1:H.ny
+		for ix in 1:2:nxodd
+			wmat[  ix, iy] = upx * vmat[end, iy] + umx * vmat[1, iy]
+			wmat[ix+1, iy] = umx * vmat[end, iy] + upx * vmat[1, iy]
+		end
+	end
+
+	# mix x even
+	for iy in 1:H.ny
+		for ix in 1:2:nxeven
+			wmat[  ix, iy] = upx * vmat[end, iy] + umx * vmat[1, iy]
+			wmat[ix+1, iy] = umx * vmat[end, iy] + upx * vmat[1, iy]
+		end
+	end
 	
+	for iy in 1:H.ny
+		# mix across left boundary
+		wmat[end, iy] = upx * vmat[end, iy] + umx * vmat[1, iy]
+		wmat[1  , iy] = umx * vmat[end, iy] + upx * vmat[1, iy]
+
+		for ix in 2:H.nx
+			wmat[ix-1, iy] = upx * vmat[end, iy] + umx * vmat[1, iy]
+			wmat[  ix, iy] = umx * vmat[end, iy] + upx * vmat[1, iy]
+		end
+	end
+
+	# mix y across boundary
+	for ix in 1:H.nx
+		wmat[ix, end] = upx * vmat[ix, iy] + umx * vmat[ix, iy]
+		wmat[ix,   1] = umx * vmat[ix, iy] + upx * vmat[ix, iy]
+	end
+	for iy in 1:H.ny
+		iym = mod1(iy-1, H.ny)
+		for ix in 1:H.nx
+			wmat[ix-1, iy] = upx * vmat[end, iy] + umx * vmat[1, iy]
+			wmat[  ix, iy] = umx * vmat[end, iy] + upx * vmat[1, iy]
+		end
+	end
 end
   ╠═╡ =#
+
+# ╔═╡ ae470b2b-ad8d-4bf9-bb11-45c8bdf305e6
+md"## Pseudo Spectral Splitting"
+
+# ╔═╡ ed4fc58f-600f-483f-bff4-4384e6a1850f
+psn = 512
+
+# ╔═╡ 62122c90-8560-4a68-becf-0c8a4cb5b212
+test_xs = range(0, 1; length=psn+1)[begin:end-1]
+
+# ╔═╡ 5bbe5b1e-4fa2-4797-90b8-6261e2b3ef92
+testk = 1
+
+# ╔═╡ 1e3c2d41-f2d0-447e-9e91-35c65942483c
+test_vec = [cispi(testk*2x) for x in test_xs]
+
+# ╔═╡ eb87616d-dcb7-4cf6-9f88-c3b2516f7b3e
+dvec = [testk*2π*im * cispi(testk*2x) for x in test_xs]
+
+# ╔═╡ 2da5d818-8c99-4140-be31-098454535534
+fft_vec = fft(test_vec)
+
+# ╔═╡ 7b382b57-b012-4ac7-9d64-958df6a693ce
+dfft_vec = fft(dvec)
+
+# ╔═╡ a9068706-6634-4c4d-8e5b-7e603e89d6ee
+[abs(x) > 100eps() ? (dx / x) / (testk * 2π * im) : zero(x) for (dx, x) in zip(dfft_vec, fft_vec)]
+
+# ╔═╡ a60b14b4-4fc7-405a-8f5f-263c670a2b38
+ifft(fft_vec) ≈ test_vec
+
+# ╔═╡ cc79ad2d-e2d1-47f3-875a-9f5ba11bf155
+ifft(dfft_vec) ≈ dvec
+
+# ╔═╡ 61710132-d70c-40f2-ae8d-f6abe370fa13
+let fig = Figure()
+	ax = Axis(fig[1, 1])
+
+	lines!(ax, test_xs, real.(test_vec))
+	lines!(ax, test_xs, imag.(test_vec))
+
+	fig
+end
+
+# ╔═╡ 8112c04e-6a49-4dc4-ac6e-f15149a814f2
+kfft_vec = [2π * im * (k-1) for (k, v) in enumerate(fft_vec)]
+
+# ╔═╡ 2fb9f6e3-dd95-4796-9303-ae7cc066c602
+ktest_vec = ifft(kfft_vec)
+
+# ╔═╡ 5296126b-50a6-4438-99f7-2ffb936e4273
+struct PseudoSpectral{T, FTP, IFTP}
+	fftplan::FTP
+	ifftplan::IFTP
+end
+
+# ╔═╡ e227da11-1d91-40a8-9c3f-1cc3f4af3b34
+
 
 # ╔═╡ 7449bbcb-88a8-46a0-8a84-a53a85f5d7b6
 md"### Krylov Exponential"
@@ -293,10 +443,10 @@ function V(x, y)
 end
 
 # ╔═╡ 397957ee-c671-4446-ab4e-1e500148c3bb
-nx, ny = (100, 100)
+nx, ny = (50, 50)
 
 # ╔═╡ 6e5ae6a4-a18c-48bf-85b9-9fe9144fe837
-wf0 = wavefunction(nx, ny) do x, y
+wf0 = wavefunction(ComplexF32, nx, ny) do x, y
 	r = 0.33
     dx = x - 0.25
     dy = y - 0.5
@@ -314,7 +464,7 @@ NN = nx * ny
 xlen, ylen = (100.0, 60.0)
 
 # ╔═╡ ec673526-580d-488a-aaa3-7b9a686fd02a
-H = FinDiffHamiltonian{Periodic}(V, xlen, ylen, nx, ny)
+H = FinDiffHamiltonian{Periodic, Float32}(V, xlen, ylen, nx, ny)
 
 # ╔═╡ 97315f46-9e31-45d6-99e7-98cc43924b59
 @bind tend Slider(range(0, 500; length=100))
@@ -341,6 +491,8 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 KrylovKit = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -348,6 +500,8 @@ PlutoTest = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
+BenchmarkTools = "~1.5.0"
+FFTW = "~1.8.0"
 GLMakie = "~0.10.3"
 KrylovKit = "~0.8.1"
 PlutoTest = "~0.2.2"
@@ -360,7 +514,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "3e76eb8f10bd0cb493025ff8c2a5c6e0894d9750"
+project_hash = "ad5f69a433d61c0847ccdf2851f88d33e64fd92a"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -433,6 +587,12 @@ version = "0.4.7"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "f1dff6729bc61f4d49e140da1af55dcd1ac97b2f"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.5.0"
 
 [[deps.Bzip2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1359,6 +1519,10 @@ version = "1.4.3"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[deps.ProgressMeter]]
 deps = ["Distributed", "Printf"]
 git-tree-sha1 = "763a8ceb07833dd51bb9e3bbca372de32c0605ad"
@@ -1871,6 +2035,8 @@ version = "3.5.0+0"
 # ╠═52aaf95c-818a-495b-86c3-d1cc73f60033
 # ╠═edbc5861-96b0-4d29-b158-f60f82c77f37
 # ╠═896a6291-0027-4849-85cf-43e05082e5a8
+# ╠═862c6632-75d4-4321-9c64-a735e5e5c124
+# ╠═271148a8-5410-46b9-a743-46bb18199b3d
 # ╟─bec6b558-b794-4d7e-9dd0-fba13a4b5c61
 # ╠═51954bdb-3cd7-428e-a7ad-7a02be2f06b4
 # ╠═504fa869-0faa-4f0c-943a-94dd1b57757b
@@ -1879,16 +2045,17 @@ version = "3.5.0+0"
 # ╠═989bbaf8-f3e1-4c0e-941b-25480bbcb272
 # ╟─61883ba0-0da8-43ec-9f3a-e5f6367492f3
 # ╠═e4abdbe5-9da6-4454-9817-d97cbc471c93
+# ╠═f8a3d038-07ea-456a-9b57-b1332352bd5d
 # ╠═9e7c66f3-a2f2-4470-bd7b-651963a8ad77
 # ╠═c23f8ec1-694a-473e-8486-f854aaadcc62
 # ╠═a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
 # ╠═f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
 # ╠═97dbb2a4-d43f-4401-a167-8862837c196f
-# ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
 # ╠═50bf1130-d60d-40d4-aea0-024af72a69bd
 # ╠═7af30430-cacc-4956-919c-d5707ec0cbf1
 # ╠═98600be8-5246-41b6-8100-b221e76ee818
 # ╠═fa349d2c-4db0-4293-a956-91d9cbe686b4
+# ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
 # ╠═2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
 # ╠═5133587f-265a-40a7-8d5d-08d28ccab7a7
 # ╠═78553187-2839-4afd-b2aa-f500a2a87b20
@@ -1898,7 +2065,29 @@ version = "3.5.0+0"
 # ╠═4a41cf38-7259-4316-be29-703ea0e3101a
 # ╟─a1c8fa54-57d4-4ae1-b775-8522b8c2090d
 # ╠═b9ea4c05-5018-4421-b43b-c1bf43ecee32
+# ╠═12f29c4f-69fc-4d83-88d6-4d7b030ad8eb
+# ╠═b367f95e-7e48-40b5-bae0-b0ef059e865a
+# ╠═d83ee165-b1a1-4579-aec4-71c2706c779c
+# ╠═a47b596c-97de-4259-822e-cb6fb9f4e09c
+# ╠═bdc007ae-8020-47ed-9279-456dcd8004ef
+# ╠═7b054a8a-8e90-4d98-bc29-b55ecac88520
 # ╠═c3cb2999-66af-4e6f-afa7-ac19d844dce6
+# ╟─ae470b2b-ad8d-4bf9-bb11-45c8bdf305e6
+# ╠═ed4fc58f-600f-483f-bff4-4384e6a1850f
+# ╠═62122c90-8560-4a68-becf-0c8a4cb5b212
+# ╠═5bbe5b1e-4fa2-4797-90b8-6261e2b3ef92
+# ╠═1e3c2d41-f2d0-447e-9e91-35c65942483c
+# ╠═eb87616d-dcb7-4cf6-9f88-c3b2516f7b3e
+# ╠═2da5d818-8c99-4140-be31-098454535534
+# ╠═7b382b57-b012-4ac7-9d64-958df6a693ce
+# ╠═a9068706-6634-4c4d-8e5b-7e603e89d6ee
+# ╠═a60b14b4-4fc7-405a-8f5f-263c670a2b38
+# ╠═cc79ad2d-e2d1-47f3-875a-9f5ba11bf155
+# ╠═61710132-d70c-40f2-ae8d-f6abe370fa13
+# ╠═8112c04e-6a49-4dc4-ac6e-f15149a814f2
+# ╠═2fb9f6e3-dd95-4796-9303-ae7cc066c602
+# ╠═5296126b-50a6-4438-99f7-2ffb936e4273
+# ╠═e227da11-1d91-40a8-9c3f-1cc3f4af3b34
 # ╟─7449bbcb-88a8-46a0-8a84-a53a85f5d7b6
 # ╠═c9f84b1e-49e5-4619-add9-b73c804333e0
 # ╠═397957ee-c671-4446-ab4e-1e500148c3bb
