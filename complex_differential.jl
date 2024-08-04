@@ -14,327 +14,453 @@ macro bind(def, element)
     end
 end
 
-# ╔═╡ 53da5634-a69c-4285-ac26-314b5e696656
+# ╔═╡ 691ec055-4906-4de6-acc7-86aeb66921b0
 using GLMakie
 
-# ╔═╡ 17fcdcf0-67d2-41ba-89ca-e8427e829b2f
+# ╔═╡ fecc4dc0-1957-4034-8685-3deb4b4c1acc
 using PlutoUI
 
-# ╔═╡ e7000762-01f1-41fc-9847-9da1b4c642fe
-using LinearAlgebra
-
-# ╔═╡ d38ebcd4-e581-41a3-a741-a4412ebf1867
+# ╔═╡ 153e778c-ed7d-4caa-8653-de89b586fe20
 md"
-# Axioms of Quantum Mechanics
+# Numbers
 
-Quantum Mechanics is built on 4 axioms (assumptions). These are well-verified by experiment, and took scientists a long time to discover and understand. In this notebook, our goal is to 
-1. Learn what the 4 axioms of Quantum Mechanics are
-2. Understand what they mean
-3. Apply them to a simple model system: The Stern-Gerlach experiment
-
-## The first Axiom: States are vectors
-
-We can represent the state of a Quantum system as a vector in a Vectorspace. These vectors are always normalised, so they have length 1. One example of this is the state of a single spin, which can be visualized as an arrow pointing either up or down. 
+Variables store values for later use. Play with the expressions below to see how the outputs change. Press shift + enter to execute a cell and press control or command + enter to execute a cell and create a new cell below. For more details on variables, see the relevant Julia manual section [here](https://docs.julialang.org/en/v1/manual/variables/).
 "
 
+# ╔═╡ 829793b8-35ff-11ef-0499-b5ddc4165a27
+x1 = 3  # Our first variable
 
-# ╔═╡ 29bfbd20-b307-4ae6-a2b2-ad4c556c4479
-Spinstate = Float64[1,0]#We initialize a vector with two entries. The state [1,0] will correspond to spin up, and [0,1] to spin down. 
+# ╔═╡ 4fb20823-d20c-4d0d-8568-e3bb6cca0a28
+# Our second variable
+x2 = 2 * x1 + 5
 
-# ╔═╡ 8e2bff72-577d-4069-a55d-33330e45ce73
-md"## The second Axiom: Observables are Hermitian Matrices
+# ╔═╡ dc8bd2b8-4bc7-42eb-acb8-f06432bace8f
+# Feel free to create new cells like this one, using the plus symbol above and below each cell on the left.
+5 + 3
 
-An observeable is a physical quantity that we can measure. Examples include the energy, the momentum, the position and the spin of a particle. Each such observeable can be represented by a hermitian matrix, which acts on the state vector. In our example of looking at spin states, one example would be the spin of the particle along the z axis, i.e. whether the spin is pointing up (1) or down (-1). This is represented by the matrix:"
+# ╔═╡ 256e150c-477b-4b9e-8a93-3300ec7f4ae9
+md"Every variable has a type. `x1` and `x2` are integers (whole numbers, which are positive or negative)."
 
-# ╔═╡ 9bade9d9-2301-4f36-8809-344873f8630c
-σ_z = Float64[1 0; 0 -1]
+# ╔═╡ 59fa4f07-8ba9-414d-8f6a-60dc9976ce43
+typeof(x1)
 
-# ╔═╡ 653e636b-5790-452c-83b2-194609bb42af
-σ_z * Spinstate #Applying the spin-operator to the spin-state returns the same state. Try changing the spin state to [0,1]!
+# ╔═╡ a8880925-bd5e-4029-aefa-ab48ffb93b3d
+md"We can also assign values of other types to variables. See examples below."
 
-# ╔═╡ ba383896-1d2a-43a0-851b-4114891645be
-md"The number that the state is multiplied by when the operator is applied is called an eigenvalue. What are the eigenvalues of $σ_z$? What happens when you apply the operator to a state that is not [1,0] or [0,1]?"
+# ╔═╡ 60a369ef-6df6-4609-95e0-b3165519bf3d
+x3 = true  # try replacing with false
 
-# ╔═╡ 2af78c44-2d26-486d-beb4-e6f1c425b393
-md"We can imagine other matrices acting on the spin-state. These correspond to the spin in x-direction and y direction. The matrices are:"
-
-# ╔═╡ d8cc41e8-fe7b-43e7-8123-359eb32c7380
-σ_x = Float64[0 1; 1 0]
-
-# ╔═╡ e8cd222b-97f7-42d6-834b-c80621a76a2f
-σ_y = ComplexF64[0 -im; im 0]
-
-# ╔═╡ eb131edf-0d88-45ad-b72d-b887453838f1
-md"Try what happens when you apply these matrices to the spin states [1,0] and [0,1]! 
-
-This is because [1,0] and [0,1] are eigenstates of $σ_z$, but not of $σ_x$ or $σ_y$. The operator $σ_z$ asks the question: Is the spin up (returns 1 times the vector) or is it down (returns -1 times the vector). $σ_x$ and $σ_y$ ask whether the spin points forward or backward, and left or right respectively. So when given a vector pointing up or down, they don't give a simple answer. 
-
-Which vectors are eigenstates of $σ_x$ and $σ_y$?"
-
-# ╔═╡ 63dbb47c-022b-468a-be97-7b2e01c7cffd
-eigvecs(σ_x)
-
-# ╔═╡ 456082fa-42b6-4776-9788-55c2c0547025
-md"To convince ourselves, that these are truly the eigenvectors of $σ_x$ we see what happens when we apply $σ_x$:"
-
-# ╔═╡ ec6e42ea-bb49-4d5d-85b2-066855618e08
-σ_x * eigvecs(σ_x)[:,2]#Here we apply σ_x to the second eigenvector. Try what happens when you swap σ_x for σ_y and try the different eigenstates. 
-
-# ╔═╡ 89c52494-8f14-41a8-8211-6ecb591b682a
-md"What are the eigenvalues of $σ_x$ and $σ_y$?"
-
-# ╔═╡ ec85de5e-8e33-4bde-8634-3c1e201127d9
-eigvals(σ_z)
-
-# ╔═╡ c772a479-ffe1-4478-89ba-1edb829feb15
-md"### Optional Exercise: 3-level system
-
-Imagine a system with a spin that can not just be up (1) or down (-1) but also neutral (0) along the z-axis. How would you write the eigenstates corresponding to these states, and which matrix would you use to represent the observeable of the spin along this axis?"
-
-# ╔═╡ 8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
-md"## The third axiom: Measurements
-
-Now that we have defined our state, and what we can measure for that state, the next question is what the result of a measurement will be. In the case of a spin-state [1, 0], if we measure the spin along the z-axis, we will of course get 1 as a result. Likewise, for [0,1], the result will be -1. 
-
-However, if we try to measure the spin along the x-axis, what will the result be?"
-
-# ╔═╡ f908f827-49a2-4433-b4d6-846aeb7ea355
-md"**The measurement of an observeable will ALWAYS return one of the eigenvalues of the operator, with a probability given by the squared norm of the scalar product of the state with the corresponding eigenstate of the system**"
-
-# ╔═╡ 59e3a5b5-01b1-4a97-bad8-527f1f296d61
-dot(Float64[1,0], Float64[1,0]) #This calculates the scalar product of two vectors.
-
-# ╔═╡ c8602d92-88cd-4c98-b8c3-47575247e01a
-function probability(vec1, vec2)#Write a function which takes two vectors, and returns the squared norm of the scalar product. 
-	return norm(dot(vec1,vec2))^2 
-end
-
-# ╔═╡ 4fc67d42-cbaf-4be3-9bc3-3a855734857d
-probability([1,0], [0,1])#Test out what happens for different vectors.
-
-# ╔═╡ 6b6a2445-16dd-485c-985b-8edacfacfe4e
-md"**Once the measurement has been performed, the state of the system will be the eigenstate belonging to the eigenvalue that was returned by the measurement**"
-
-# ╔═╡ 7331fca3-7713-4e97-b442-14266d98b9c4
-function perform_measurement_Z(state)#This function takes a state and an operator, and simulates performing a measurement of the spin in z-direction. It returns the state after the measurement was performed. 
-	overlap = probability(state, [1,0])
-	if rand() > overlap
-		return [0,1]
-	else
-		return [1,0]
-	end
-end
-
-# ╔═╡ 1b109de1-5d4b-49b1-8c0b-61ab0ae2367d
-perform_measurement_Z(eigvecs(σ_x)[:,2])
-
-# ╔═╡ 2f4bd64a-737b-4478-89ff-84a5ff5ecac7
-md"We can see that, for example, when using the eigenvectors of the spin in x-direction, the chance of measuring either up or down is exactly one half. Therefore, on average, the outcome of the measurement will be 0. This average over many measurements is called the expectation value, and is calculated as the scalar product of the vector with itself after the operator was applied."
-
-# ╔═╡ 9a790930-9dc4-47a0-bf62-1ad65f68887d
-function expectation_value_Z(state)#Calculates the expectation value for measuring the spin along the z-axis for a given state
-	return dot(state, σ_z * state)
-end
-
-# ╔═╡ 6ea47032-81d9-483e-aaec-e20079fb8f22
-expectation_value_Z(eigvecs(σ_x)[:,2])
-
-# ╔═╡ 0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
-md"In order to verify that this is the case, we try performing many measurements, and count how often each result appears."
-
-# ╔═╡ 69cb2496-d536-4687-9753-38fbbaeceab1
-function perform_many_measurements(number_of_measurements, initial_state)
-	up = 0.0
-	down = 0.0
-	for i in number_of_measurements:-1:1
-		if expectation_value_Z(perform_measurement_Z(initial_state)) > 0
-			up += 1
-		else
-			down += 1
-		end
-	end
-	return [up/number_of_measurements, down/number_of_measurements]
-end
-
-# ╔═╡ 4cf45ffb-fa82-4311-8928-7ab53f005ae8
-measurements = perform_many_measurements(1, eigvecs(σ_x)[:,2])#What happens when you change the number of measurements or the initial state?
-
-# ╔═╡ 55a0a31d-b10b-4949-9e69-ad33d3aa2f06
-let f = Figure()
-Axis(f[1, 1])
-
-barplot!([1, -1], measurements, color = :red, strokecolor = :black, strokewidth = 1)
-
-f end
-
-# ╔═╡ 410fca9e-7fe9-4e76-a176-4c7d0ba13a78
-md"## Fourth Axiom of Quantum Mechanics: Time Evolution
-
-We now understand how to specify a system, what we can measure and how to predict outcomes of measurements. The last piece of the puzzle is the *Time Evolution*, which predicts what the future state of a system will be, given its current state.
-
-In order to understand this, we need to introduce one more concept: The **Hamiltonian**. This is the operator corresponding to the total energy of the system. In our example we can imagine an external magnetic field which is applied to the spin. If the spin is aligned with the magnetic field, its energy is smaller, e.g. -2. If it is pointing in the opposite direction, its energy is increased to +2. We assume that the magnetic field points in the z-direction. The Hamiltonian of the system then is"
-
-# ╔═╡ a52afb60-37d0-4894-a162-0b22e55b6e5a
-Hamiltonian = [-2 0; 0 2]
-
-# ╔═╡ 671cafb7-91fd-44fe-8404-736b960eb28a
-md"Note that the Hamiltonian $H$ and the σ_z operator have the same eigenstates (Check that this is true!). This means that measuring either also fixes the result for measuring the other.
-
-**The Time evolution of a Quantum Mechanical system is given by the time evolution operator $U(t) = exp(iH ⋅ t/ħ)$.**"
-
-# ╔═╡ 5eb922d9-2ccd-4381-abf4-2d32a47fc83d
-function time_evolution_B_z(t)#Write the function which returns the time evolution operator U(t) for the Hamiltonian specified above. Assume ħ=1.
-	return cis(Float64[-2 0; 0 2]*t)
-end
-
-# ╔═╡ a4ca4561-e485-4e94-8d0c-73b47fe43959
-time_evolution_B_z(40) * eigvecs(σ_x)[:,2]
-
-# ╔═╡ fac5ebfa-65bb-44c7-86d0-7d0396c02a70
-md"Here we observe an important fact, which we did not focus on previously: The entries of the state-vectors may be complex. The time evolution corresponds to a rotation in the vectors space and the complex plane.
-
-How do the entries of the vectors change as the time evolution progresses?
-
-What happens if we use a magnetic field in x-direction?"
-
-# ╔═╡ 17fa590a-d77e-4d8c-9dd8-5ecfa29fbc41
-function time_evolution_B_x(t)#Write the function which returns the time evolution operator U(t) for a B-field in the x-direction, analog to the one in z-direction specified above. Assume ħ=1.
-	return cis(ComplexF64[0 2; 2 0]*t)
-end
-
-# ╔═╡ 5b8f576d-76ab-407d-8d26-d7abfe2f0cac
-md"In order to gain further intuition for the behaviour of states as the time evolution is applied, we turn to visualization. Since the full state including complex phases depends on 4 numbers it is difficult to imagine for us. However, a global complex phase, which is applied to the entire state $e^{i\phi} \Psi$, does not change the outcomes of measurements, so we can ignore it. All that remains is the relative complex phase between the entries, and the real magnitude of each entry of the vector.
-
-Show that a global complex phase does not change the outcome of measurements!"
-
-# ╔═╡ 592fafe8-ec65-486c-a541-f38da30d2dd2
-if probability(eigvecs(σ_x)[:,2], [0,1]) == probability(eigvecs(σ_x)[:,2]*cis(3), [0,1])
-	print("Global phases don't matter")
+# ╔═╡ 3b03ea09-d82b-499a-a3f3-e9cff282938f
+if x3  # true/false values may be used in if statements to conditionally execute code.
+	print("Hello World! I only print if x3 is true.")
 else
-	print("Global phases do matter")
+	print("Hello World! I only print if x3 is false.")
 end
 
-# ╔═╡ 460c778d-969c-4234-9e65-ef8f1bb3557f
-md"The outcome of a measurement is only dependent on the overlap of the eigenstates with the current state. This overlap is not changed by a global complex phase.
+# ╔═╡ ea19e5f6-c0a4-424d-9410-d7919ce37b8b
+typeof(x3)  # Bools or Booleans represent true or false values.
 
-We can further reduce the dimensionality of the problem by noting that the normalisation to length 1 of the vector removes one more degree of freedom. Therefore, only two numbers are sufficient to characterize the state: 
- - The complex phase between the states
- - How much the state points in the z-direction"
+# ╔═╡ 5edb0bb9-0d6c-419e-af39-38cf469ae0df
+x4 = "This is a string."
 
-# ╔═╡ f6b42b7d-c614-4c95-a105-d7dced988825
-function parametrize_Bloch_sphere(state)
-	return [2*acos(abs(state[1])),angle(state[1]) - angle(state[2])]
-end
+# ╔═╡ 8a6fc8de-f385-4bda-a97a-5de362a8e4dd
+typeof(x4)
 
-# ╔═╡ f802e2f0-201e-490b-937c-82e25bb640e0
-function Bloch_point(state)
-	parameters = parametrize_Bloch_sphere(state)
-	return Float64[sin(parameters[1])*cos(parameters[2]), sin(parameters[1])*sin(parameters[2]), cos(parameters[1])]
-end
+# ╔═╡ 84f0c0a7-2523-4386-af53-71edc5b5e944
+x4 * " It can be" * " concatenated with the * operator"
 
-# ╔═╡ 70539c8d-7565-4554-b60e-22220151b38b
-time_range = 0:0.1:10
+# ╔═╡ ecbe28b1-8feb-4250-9fa9-6f996bb693b6
+md"For our purposes, numbers are especially important. So far, we have encountered whole numbers. To represent numbers with a decimal point, we need floating point numbers. For more details on integers and floating point numbers, see the Julia manual section on them [here](https://docs.julialang.org/en/v1/manual/integers-and-floating-point-numbers/#Integers-and-Floating-Point-Numbers)."
 
-# ╔═╡ f0716eed-8be2-4031-9345-c28386fc1412
-initial_state = [1,0]
+# ╔═╡ 14ff863e-6c7b-4279-a1dd-769a88054b09
+x5 = 5.3  # This is a floating point number (numbers with decimal point)
 
-# ╔═╡ 4a5aa91c-cd22-481c-9e99-bf24a1eaa092
-@bind time PlutoUI.Slider(time_range)
+# ╔═╡ 4835b6d5-9e83-48dd-ac97-cab97fba7191
+1.602_176_63e-19  # scientific notation (underscores are optional)
 
-# ╔═╡ a0c4484b-0869-427b-9885-de3072bc8fb4
-md"Because the point can be a bit difficult to follow, we also plot the trace. Write the name of the function, which returns the time-evolution operator here:"
+# ╔═╡ 31556d1a-e942-45b0-99fd-4d2d23c86e9a
+typeof(x5)
 
-# ╔═╡ a6269134-0ca9-464a-b05e-e4a17c1eac46
-time_evol = time_evolution_B_x
+# ╔═╡ 7d6f083c-2aa3-48c3-8851-69cea093fbca
+md"As you might expect, we can calculate with numbers."
 
-# ╔═╡ 67988f84-dc78-4c9d-bc6b-260fd36556a6
-time_evolved_state = time_evol(time)*initial_state
+# ╔═╡ f458db5f-f542-4fc5-bd6a-5578376826ca
+x5 / 3 - 2
 
-# ╔═╡ 28728934-b4b5-4b58-b44a-2ea9c5f51f5b
-plotted_point = Bloch_point(time_evolved_state)
+# ╔═╡ 7b1959de-5688-4823-9d70-cb45c1572d54
+x5 ^ 2
 
-# ╔═╡ ca85162f-4b9a-4d12-89f1-2126321e4071
-let # Define the sphere's radius and parameterize the surface using spherical coordinates
-radius = 1
-u = range(0, stop=2π, length=50)
-v = range(0, stop=π, length=50)
-x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
-y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
-z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
+# ╔═╡ 1d3ba3ad-64a6-4c5d-aff6-0d793e152278
+x5 * x5 - x1
 
-plotted_points = zeros(Float64, (3,length(time_range)))
+# ╔═╡ 427e39c4-3562-4177-a91f-009ca839b68b
+sqrt(4)
 
-for i in 1:length(time_range)
-	plotted_points[:,i] = Bloch_point(time_evol(time_range[i])*initial_state)
-end
+# ╔═╡ 81332da4-935b-49a3-a043-c5446ee4df8c
+exp(x5)
+
+# ╔═╡ 484a5290-bc90-4665-ab09-b8b9cd7f07ca
+log2(2^x5)
+
+# ╔═╡ 31c0f532-bc5c-4cd0-b157-1959f2d44204
+md"We can also compare numbers."
+
+# ╔═╡ b2b8ab10-9963-4565-85da-490ba2ee6885
+(3 - 2) == 1
+
+# ╔═╡ f3efba21-1aab-4a13-9509-9d45fe5161be
+x5 > 3
+
+# ╔═╡ 07525873-366a-4b2c-8710-ea98962365c2
+# greater than or equal to 3 and not equal to 1
+x5 >= 3 && x5 != 1
+
+# ╔═╡ 6faa0256-1190-45b3-82e7-14ff2ffb25ed
+# greater than 1 or less than -1
+x5 > 1 || x5 < -1
+
+# ╔═╡ 34aa7863-2f6e-44ec-8d4e-6b17aa0d3038
+md"# Complex Numbers"
+
+# ╔═╡ a5235c20-b927-4a24-b2e7-a350209ac8df
+md"`im` represents i and with it we can represent complex numbers. For more details on complex numbers in Julia, see [here](https://docs.julialang.org/en/v1/manual/complex-and-rational-numbers/#Complex-Numbers)."
+
+# ╔═╡ ebefa4fd-d15e-4652-9caf-2662d1edd62b
+im ^ 2
+
+# ╔═╡ a6dd4796-d36f-4a13-9ee5-327a9695ef18
+# sqrt(-1) will throw an error. Try it if you want.
+sqrt(Complex(-1))
+
+# ╔═╡ 87e2c807-b2f2-4aed-ac6a-d8546d08fc9a
+x6 = 3 + 2.5im
+
+# ╔═╡ 999d6dde-128c-4c1c-8b52-e79e58c48788
+typeof(x6)
+
+# ╔═╡ ba030427-5039-41c1-931a-0c8608bc8812
+real(x6)
+
+# ╔═╡ 24590d77-c80b-4e2f-9d40-fa45ab09ef7c
+imag(x6)
+
+# ╔═╡ 16820ac7-a170-4fd1-bea0-ec74c42b189d
+conj(x6)
+
+# ╔═╡ 6f1dc7fc-a81e-4f92-9952-abda25dd247c
+x6 * conj(x6) == abs2(x6)
+
+# ╔═╡ 1f3d1df8-ba70-468d-806f-f52fb29692d9
+sqrt(abs2(x6)) == abs(x6)
+
+# ╔═╡ a0f56171-fae4-4fd9-a60f-a97ce18df330
+(2 + 3im) * x6
+
+# ╔═╡ d6091835-c724-4a0c-b31e-e8747fc70639
+(1 - 3.5im) + (-2 - im)
+
+# ╔═╡ 08c38122-1ff5-4fa6-a063-aa5a9a661444
+x6^2
+
+# ╔═╡ 4dea5df4-ffcb-4f3e-9b6e-31123f4393dd
+3x6
+
+# ╔═╡ f449f7e2-ac0a-4fa1-b43d-96a69007e051
+1 / x6
+
+# ╔═╡ 505dd190-4b7f-4a4f-899e-d2153b558e37
+x6 / (2 - im)
+
+# ╔═╡ 641772f9-e782-4ab8-8759-0afc2553fcb5
+exp(x6)
+
+# ╔═╡ 7235d894-2734-4c52-8115-7f61f8876f17
+md"# Addition and multiplication in the complex plane 
+
+Below you can fill in some values for adding and subtracting complex numbers. What happens when you add or subtract the complex conjugate? How do addition and subtraction work for complex numbers?"
+
+# ╔═╡ ab093d43-bad4-493c-a93e-d15383864ba2
+add1 = 1.0 + 1.0im #Write your numbers here
+
+# ╔═╡ 2e174298-52ba-40a4-ac36-b1cd7c80f734
+add2 = 1.0 - 1.0im#Write your numbers here
+
+# ╔═╡ ab0d38df-6374-488f-af48-372b7355b9c1
+added = add1 + add2
+
+# ╔═╡ b18552aa-34ae-40fa-bfaa-3a2f0cf01625
+let fig = Figure()
+	ax = Axis(fig[1, 1]; xlabel="real part", ylabel="imaginary part")
+	xlims!(ax, -3, 3)
+	ylims!(ax, -2, 2)
+
+	lines!(ax, [0.0, real(add1)], [0.0, imag(add1)], label="add1", color =:blue)
+	lines!(ax, [0.0, real(add2)], [0.0, imag(add2)], label="add2", color =:red)
+	lines!(ax, [0.0, real(added)], [0.0, imag(added)], label="added", color =:green)
+
+	axislegend(ax)
 	
-# Plot the semi-transparent sphere
-fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
-
-lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
-
-scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
-# Display the figure
-fig
+	fig
 end
 
-# ╔═╡ 4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
-md"Finally, we want to do the same thing for a general Hamiltonian, which may also be time dependant. For this we define a function Hamiltonian, which returns the matrix at any particular time."
+# ╔═╡ d0badf93-5a98-4ea7-8bb1-433e3bec0cd2
+md"Below, we have a list of random complex numbers (`original_zs`), which we multiply by a complex number `rot`. You'll see that multiplication by `rot` scales and rotates the picture. What happens when you set `rot` to `im` or `-im`? Play with the sliders to rotate and scale by different amounts."
 
-# ╔═╡ f0201489-9e3c-462e-8978-3c47ed7fa569
-function Hamiltonian_t(t)
-	return [sin(t) cos(t); cos(t) -2sin(t)]
-end
+# ╔═╡ a50c7532-b7af-4013-988c-4e60e32a2eaf
+original_zs = randn(ComplexF64, 10)
 
-# ╔═╡ 72d32760-3c54-406b-b59a-1d4a8f087488
-function Generic_Time_Evolution(time)#Write the function which returns the time evolution operator U(t) for a generic Hamiltonian. Assume ħ=1.
-	return cis(Hamiltonian_t(time)*time)
-end
+# ╔═╡ 831532cc-85bf-4f50-b597-430b4f6104dd
+@bind rot_r PlutoUI.Slider(0:0.05:2)
 
-# ╔═╡ 7e2b7807-281b-4273-84f2-c5dd4954219c
-@bind time_2 PlutoUI.Slider(time_range)
+# ╔═╡ 84829f97-4a82-497a-8413-406633935d0f
+@bind rot_ϕ PlutoUI.Slider(0:0.1:2π)
 
-# ╔═╡ a6ce8356-940a-4b7a-ab89-40744fd7e8e9
-state_H_evolved = Generic_Time_Evolution(time_2) * initial_state
+# ╔═╡ f0167868-0a88-46a3-b774-034d16aea14f
+rot = rot_r * (cos(rot_ϕ) + im*sin(rot_ϕ))
 
-# ╔═╡ a2a5cc59-08d1-498b-a62e-2302c6041e4c
-let # Define the sphere's radius and parameterize the surface using spherical coordinates
-radius = 1
-u = range(0, stop=2π, length=50)
-v = range(0, stop=π, length=50)
-x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
-y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
-z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
+# ╔═╡ 17735315-181e-4aa6-a3eb-dea6748cef92
+rot_r, rot_ϕ
 
-plotted_points = zeros(Float64, (3,length(time_range)))
-plotted_point = Bloch_point(state_H_evolved)
+# ╔═╡ 39d47efa-4791-4b4a-9e7f-4c64a5919faa
+abs(rot), angle(rot) / 2π * 360
 
-for i in 1:length(time_range)
-	plotted_points[:,i] = Bloch_point(Generic_Time_Evolution(time_range[i])*initial_state)
-end
+# ╔═╡ 2374b2df-528b-4ff3-a0b3-6b6dee1e88d9
+# multiply each number in original_zs with rot
+multiplied_zs = rot .* original_zs
+
+# ╔═╡ fc56d53a-4109-43b0-80fe-5b3b4561d5ea
+let fig = Figure()
+	ax = Axis(fig[1, 1]; xlabel="real part", ylabel="imaginary part")
+	xlims!(ax, -3, 3)
+	ylims!(ax, -2, 2)
+
+	scatter!(ax, real.(original_zs), imag.(original_zs); label="original")
+	scatter!(ax, real.(multiplied_zs), imag.(multiplied_zs); label="rotated")
+	lines!(ax, [0, real(rot)], [0, imag(rot)]; color=Cycled(3), label="rot")
+
+	axislegend(ax)
 	
-# Plot the semi-transparent sphere
-fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
-
-lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
-
-scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
-
-
-# Display the figure
-fig
+	fig
 end
 
-# ╔═╡ 547c87cc-63bc-43ad-821b-f6103f35f599
-md"What is the qualitative difference between a time-dependent and a non-time-dependent Hamiltonian? Why do you think these differences exist?
+# ╔═╡ d84fa26d-f5d4-423b-81c8-c0603309eb72
+md"
+# Functions & Derivatives
 
-Try to find patterns behind the movement of the state accross the Bloch sphere for different Hamiltonians!"
+Functions take some number of input, process them in some way and return some number of outputs. For details, see the section in the Julia manual [here](https://docs.julialang.org/en/v1/manual/functions/#man-functions).
+"
+
+# ╔═╡ df975096-98c9-4135-ab3d-802b5a870d6f
+# Simple function
+f(x) = sin(x)
+
+# ╔═╡ 839e13d9-434e-4834-99cf-1cc030671a3f
+f(5)
+
+# ╔═╡ bab636c3-7d4e-4016-a933-8d84664ec69a
+# Write a more complicated function, and then calculate the derivative for it numerically
+function test_triangle(x, y)
+	return 0
+end
+
+# ╔═╡ 2481044a-88da-4c4f-b141-34a55b850eb8
+test_triangle(2 + im, 5 - 3.5*im)
+
+# ╔═╡ bd20b6f2-05f2-4c13-b908-10d11657b452
+test_triangle(2 + im, 4 + 2*im)
+
+# ╔═╡ cc0c6013-7693-45ab-819a-77df1f2f21bd
+diff(f, x, h) = (f(x + h) - f(x)) / h
+
+# ╔═╡ 4fd9df31-5b59-40b3-87f5-06cf54e235d3
+@bind xapprox PlutoUI.Slider(-5:0.1:5)
+
+# ╔═╡ d96280f5-eaeb-4c78-a5d9-589254dd1acd
+let fig = Figure(), h = 0.001
+	ax = Axis(fig[1, 1])
+
+	xs = range(-5, 5; length=100)
+	lines!(ax, xs, f.(xs); label="f")
+	lines!(ax, xs, diff.(f, xs, h); label="df")
+	
+	linxs = range(-0.5, 0.5; length=100)
+	lines!(ax, xapprox .+ linxs, f(xapprox) .+ diff(f, xapprox, h) .* linxs; 
+		label="linearisation")
+
+	axislegend(ax)
+	
+	fig
+end
+
+# ╔═╡ 42dce2dc-f43d-44b7-9578-dda6baa8a8be
+md"
+# Control Flow and Vectors
+
+For details and further control flow constructs see [here](https://docs.julialang.org/en/v1/manual/control-flow/#Control-Flow).
+
+## Conditional Evaluation
+"
+
+# ╔═╡ 89a274f1-4e50-41eb-8569-714dd3ec1a5f
+x7 = 2
+
+# ╔═╡ 53c481e3-6b98-46b3-815a-423f5856926d
+if x7 > 3
+	x7 - 5
+elseif x7 == 3
+	x7
+elseif x7 < 3
+	x7 + 2
+else
+	"We should never get here!"
+end
+
+# ╔═╡ b1b19b64-b5cc-4a74-92e7-70dcee6218cf
+md"One line if statements are possible,"
+
+# ╔═╡ 4169b9c1-fc55-45a8-938a-1940d634dac0
+if x7 > 2; 3 else 5 end
+
+# ╔═╡ 1ad0b912-0d67-4e5f-a9a9-ec1d41ce3bb4
+md"but they can be done more elegantly."
+
+# ╔═╡ adee7e99-e2f5-44c2-a3c0-19ea858b60d2
+# This is called a ternary operator
+x7 > 2 ? 3 : 5
+
+# ╔═╡ 9fede230-4e5b-413a-acde-8bc5ad375c23
+md"Similarly and (`&&`) and or (`||`) operators can be used for shorthand if statements."
+
+# ╔═╡ 0aa8959e-f90d-4404-bf3c-64c24196eb5e
+2 == 2 && print("first part must be true to get here.")
+
+# ╔═╡ e3567900-ce53-4381-827c-9c8db99d2df7
+2 == 2 || print("first part must be false to get here.")
+
+# ╔═╡ 33c8a68f-a7ae-4a94-9774-9178b4556b0b
+md"## Loops"
+
+# ╔═╡ baf07f20-d4d7-4451-9f08-4551f65331ce
+let i = 1
+	while i < 5
+		print(i)
+		i += 1  # add one to i
+	end
+end
+
+# ╔═╡ 5da40376-b68d-49e1-b2a6-4676b6ba31b2
+for i in 5:-1:1
+	print(i)
+end
+
+# ╔═╡ 2ef0d503-d8e1-4351-bdb9-c2ab98faef58
+md"# Vectors"
+
+# ╔═╡ 6ec59e0f-b3d9-4105-9960-64b3455adede
+v1 = [1, 2, 5, -1]
+
+# ╔═╡ 958ff51e-3ce2-4d96-9776-98da9cd78d0a
+length(v1)
+
+# ╔═╡ 9cd98d3b-8f1f-4063-bd79-088a40ab389a
+first(v1), last(v1)
+
+# ╔═╡ c5725b36-4f18-4d5f-9d9d-35e59ea1ca77
+v1[2]
+
+# ╔═╡ fb1aa734-894a-49e5-a111-32951d6c2557
+v1[3:4]
+
+# ╔═╡ 20da0774-ba3d-4867-8ff8-59aade8cd652
+for x in v1
+	print(x, " ")
+end
+
+# ╔═╡ 5a5635f7-0f89-495d-a209-8dcd36e1d3fa
+# an empty vector
+v2 = []
+
+# ╔═╡ a212baa6-d124-4a96-86b0-028caec25f55
+# append 2 to v2
+push!(v2, 2)
+
+# ╔═╡ 9c95108b-f5e6-4bd2-9bd2-3feeb378e832
+# a vector of floats
+v3 = Float64[3, 2, 1]
+
+# ╔═╡ ee522965-b92e-4dfe-8101-e4563adce105
+# apply an operation to every element (called broadcasting)
+cos.(v3) .+ 5
+
+# ╔═╡ 80db1392-37fc-4144-98eb-37a8e0eaf94d
+# a vector of zeros (also works with ones)
+zeros(5)
+
+# ╔═╡ ee1951aa-ed7a-4136-9c0a-1b613e64619c
+# a vector of random numbers between 0 and 1
+rand(5)
+
+# ╔═╡ 803b97c5-d917-4658-8882-131c5e60ade9
+squares = [x^2 for x in 1:5]
+
+# ╔═╡ e7de0378-ba5e-4a59-a058-4e5dad3af3c5
+sqidx = squares .> 5
+
+# ╔═╡ df245a2a-48a2-448f-a9a6-5427e3b6b1ec
+squares[sqidx]
+
+# ╔═╡ f9d48509-2ca0-4c27-ab9c-2de58991f05c
+md"# Our First Differential Equation"
+
+# ╔═╡ 779f13b0-38f4-4e19-9bc0-ee25d02dff1e
+@bind r_real PlutoUI.Slider(-2:0.1:2)
+
+# ╔═╡ bde5e9db-81dd-41df-b2b1-f82efb7e860a
+@bind r_imag PlutoUI.Slider(-2:0.1:2)
+
+# ╔═╡ 74ed6153-d900-47ed-9491-296da0896ddf
+r = r_real + im * r_imag
+
+# ╔═╡ 2e56e341-a50a-4ec6-b2f0-0bd5239457a8
+step(x, r, dt) = 0#Write the function which will apply a single time step
+
+# ╔═╡ 2cd09b9a-a2c6-4a39-8ee2-784603d21e1f
+y0 = 1
+
+# ╔═╡ 9c42dc5b-eba2-447c-a053-01d9984f655c
+maxt = 2π
+
+# ╔═╡ 6e11cf2a-a99c-4aca-9a6a-12d4d1f77c95
+# outputs list of y values over time; The output should be a list of values (out), which contain a complex number for every time step. 
+function gen_spiral(init, r, n, t)
+	out = ComplexF64[init]  # list of values
+	
+	return out
+end
+
+# ╔═╡ 906c84c3-c60c-429d-bfb8-644ef927e5de
+spiral = gen_spiral(y0, r, 1000, maxt)
+
+# ╔═╡ 93de866d-d9c7-40bb-a8a6-ff2615c4fa96
+md"Below you can compare with the exact solution $exp(ir \cdot t)$, shown in yellow"
+
+# ╔═╡ bc0f37ea-66f6-41b3-a44b-182cf143127e
+let fig = Figure()
+	ax = Axis(fig[1, 1]; aspect=DataAspect())
+	
+	lines!(ax, real.(spiral), imag.(spiral))
+
+	ts = range(0, maxt, 100)
+	zs = exp.(r .* ts)
+	lines!(ax, real(zs), imag.(zs); color=Cycled(2))
+
+	fig
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
@@ -346,9 +472,9 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
-project_hash = "92795ba12cfb5c1cc04c9e63fabf524011234630"
+project_hash = "0283ffd3a4350efb49827b84a5c232ce6c7f14ce"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -511,7 +637,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -732,9 +858,9 @@ version = "0.10.3"
 
 [[deps.GeoInterface]]
 deps = ["Extents"]
-git-tree-sha1 = "9fff8990361d5127b770e3454488360443019bb3"
+git-tree-sha1 = "801aef8228f7f04972e596b09d4dba481807c913"
 uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
-version = "1.3.5"
+version = "1.3.4"
 
 [[deps.GeometryBasics]]
 deps = ["EarCut_jll", "Extents", "GeoInterface", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
@@ -1484,9 +1610,9 @@ version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "20833c5b7f7edf0e5026f23db7f268e4f23ec577"
+git-tree-sha1 = "6e00379a24597be4ae1ee6b2d882e15392040132"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.9.6"
+version = "1.9.5"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
@@ -1604,9 +1730,9 @@ weakdeps = ["Random", "Test"]
     TestExt = ["Test", "Random"]
 
 [[deps.Tricks]]
-git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
+git-tree-sha1 = "eae1bb484cd63b36999ee58be2de6c178105112f"
 uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
-version = "0.1.9"
+version = "0.1.8"
 
 [[deps.TriplotBase]]
 git-tree-sha1 = "4d4ed7f294cda19382ff7de4c137d24d16adc89b"
@@ -1653,15 +1779,15 @@ version = "1.0.0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "d9717ce3518dc68a99e6b96300813760d887a01d"
+git-tree-sha1 = "52ff2af32e591541550bd753c0da8b9bc92bb9d9"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.13.1+0"
+version = "2.12.7+0"
 
 [[deps.XSLT_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "XML2_jll", "Zlib_jll"]
-git-tree-sha1 = "a54ee957f4c86b526460a720dbc882fa5edcbefc"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
+git-tree-sha1 = "91844873c4085240b95e795f692c4cec4d805f8a"
 uuid = "aed1982a-8fda-507f-9586-7b0439959a61"
-version = "1.1.41+0"
+version = "1.1.34+0"
 
 [[deps.Xorg_libX11_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxcb_jll", "Xorg_xtrans_jll"]
@@ -1823,66 +1949,117 @@ version = "3.5.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═53da5634-a69c-4285-ac26-314b5e696656
-# ╠═17fcdcf0-67d2-41ba-89ca-e8427e829b2f
-# ╠═e7000762-01f1-41fc-9847-9da1b4c642fe
-# ╟─d38ebcd4-e581-41a3-a741-a4412ebf1867
-# ╠═29bfbd20-b307-4ae6-a2b2-ad4c556c4479
-# ╟─8e2bff72-577d-4069-a55d-33330e45ce73
-# ╠═9bade9d9-2301-4f36-8809-344873f8630c
-# ╠═653e636b-5790-452c-83b2-194609bb42af
-# ╟─ba383896-1d2a-43a0-851b-4114891645be
-# ╟─2af78c44-2d26-486d-beb4-e6f1c425b393
-# ╠═d8cc41e8-fe7b-43e7-8123-359eb32c7380
-# ╠═e8cd222b-97f7-42d6-834b-c80621a76a2f
-# ╟─eb131edf-0d88-45ad-b72d-b887453838f1
-# ╠═63dbb47c-022b-468a-be97-7b2e01c7cffd
-# ╟─456082fa-42b6-4776-9788-55c2c0547025
-# ╠═ec6e42ea-bb49-4d5d-85b2-066855618e08
-# ╟─89c52494-8f14-41a8-8211-6ecb591b682a
-# ╠═ec85de5e-8e33-4bde-8634-3c1e201127d9
-# ╟─c772a479-ffe1-4478-89ba-1edb829feb15
-# ╟─8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
-# ╟─f908f827-49a2-4433-b4d6-846aeb7ea355
-# ╠═59e3a5b5-01b1-4a97-bad8-527f1f296d61
-# ╠═c8602d92-88cd-4c98-b8c3-47575247e01a
-# ╠═4fc67d42-cbaf-4be3-9bc3-3a855734857d
-# ╟─6b6a2445-16dd-485c-985b-8edacfacfe4e
-# ╠═7331fca3-7713-4e97-b442-14266d98b9c4
-# ╠═1b109de1-5d4b-49b1-8c0b-61ab0ae2367d
-# ╟─2f4bd64a-737b-4478-89ff-84a5ff5ecac7
-# ╠═9a790930-9dc4-47a0-bf62-1ad65f68887d
-# ╠═6ea47032-81d9-483e-aaec-e20079fb8f22
-# ╟─0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
-# ╠═69cb2496-d536-4687-9753-38fbbaeceab1
-# ╠═4cf45ffb-fa82-4311-8928-7ab53f005ae8
-# ╟─55a0a31d-b10b-4949-9e69-ad33d3aa2f06
-# ╟─410fca9e-7fe9-4e76-a176-4c7d0ba13a78
-# ╠═a52afb60-37d0-4894-a162-0b22e55b6e5a
-# ╟─671cafb7-91fd-44fe-8404-736b960eb28a
-# ╠═5eb922d9-2ccd-4381-abf4-2d32a47fc83d
-# ╠═a4ca4561-e485-4e94-8d0c-73b47fe43959
-# ╠═fac5ebfa-65bb-44c7-86d0-7d0396c02a70
-# ╠═17fa590a-d77e-4d8c-9dd8-5ecfa29fbc41
-# ╟─5b8f576d-76ab-407d-8d26-d7abfe2f0cac
-# ╠═592fafe8-ec65-486c-a541-f38da30d2dd2
-# ╟─460c778d-969c-4234-9e65-ef8f1bb3557f
-# ╠═f6b42b7d-c614-4c95-a105-d7dced988825
-# ╠═f802e2f0-201e-490b-937c-82e25bb640e0
-# ╠═70539c8d-7565-4554-b60e-22220151b38b
-# ╠═f0716eed-8be2-4031-9345-c28386fc1412
-# ╠═4a5aa91c-cd22-481c-9e99-bf24a1eaa092
-# ╟─a0c4484b-0869-427b-9885-de3072bc8fb4
-# ╠═a6269134-0ca9-464a-b05e-e4a17c1eac46
-# ╠═67988f84-dc78-4c9d-bc6b-260fd36556a6
-# ╠═28728934-b4b5-4b58-b44a-2ea9c5f51f5b
-# ╟─ca85162f-4b9a-4d12-89f1-2126321e4071
-# ╠═4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
-# ╠═f0201489-9e3c-462e-8978-3c47ed7fa569
-# ╠═72d32760-3c54-406b-b59a-1d4a8f087488
-# ╠═7e2b7807-281b-4273-84f2-c5dd4954219c
-# ╠═a6ce8356-940a-4b7a-ab89-40744fd7e8e9
-# ╠═a2a5cc59-08d1-498b-a62e-2302c6041e4c
-# ╟─547c87cc-63bc-43ad-821b-f6103f35f599
+# ╠═691ec055-4906-4de6-acc7-86aeb66921b0
+# ╠═fecc4dc0-1957-4034-8685-3deb4b4c1acc
+# ╟─153e778c-ed7d-4caa-8653-de89b586fe20
+# ╠═829793b8-35ff-11ef-0499-b5ddc4165a27
+# ╠═4fb20823-d20c-4d0d-8568-e3bb6cca0a28
+# ╠═dc8bd2b8-4bc7-42eb-acb8-f06432bace8f
+# ╟─256e150c-477b-4b9e-8a93-3300ec7f4ae9
+# ╠═59fa4f07-8ba9-414d-8f6a-60dc9976ce43
+# ╟─a8880925-bd5e-4029-aefa-ab48ffb93b3d
+# ╠═60a369ef-6df6-4609-95e0-b3165519bf3d
+# ╠═3b03ea09-d82b-499a-a3f3-e9cff282938f
+# ╠═ea19e5f6-c0a4-424d-9410-d7919ce37b8b
+# ╠═5edb0bb9-0d6c-419e-af39-38cf469ae0df
+# ╠═8a6fc8de-f385-4bda-a97a-5de362a8e4dd
+# ╠═84f0c0a7-2523-4386-af53-71edc5b5e944
+# ╟─ecbe28b1-8feb-4250-9fa9-6f996bb693b6
+# ╠═14ff863e-6c7b-4279-a1dd-769a88054b09
+# ╠═4835b6d5-9e83-48dd-ac97-cab97fba7191
+# ╠═31556d1a-e942-45b0-99fd-4d2d23c86e9a
+# ╟─7d6f083c-2aa3-48c3-8851-69cea093fbca
+# ╠═f458db5f-f542-4fc5-bd6a-5578376826ca
+# ╠═7b1959de-5688-4823-9d70-cb45c1572d54
+# ╠═1d3ba3ad-64a6-4c5d-aff6-0d793e152278
+# ╠═427e39c4-3562-4177-a91f-009ca839b68b
+# ╠═81332da4-935b-49a3-a043-c5446ee4df8c
+# ╠═484a5290-bc90-4665-ab09-b8b9cd7f07ca
+# ╟─31c0f532-bc5c-4cd0-b157-1959f2d44204
+# ╠═b2b8ab10-9963-4565-85da-490ba2ee6885
+# ╠═f3efba21-1aab-4a13-9509-9d45fe5161be
+# ╠═07525873-366a-4b2c-8710-ea98962365c2
+# ╠═6faa0256-1190-45b3-82e7-14ff2ffb25ed
+# ╟─34aa7863-2f6e-44ec-8d4e-6b17aa0d3038
+# ╟─a5235c20-b927-4a24-b2e7-a350209ac8df
+# ╠═ebefa4fd-d15e-4652-9caf-2662d1edd62b
+# ╠═a6dd4796-d36f-4a13-9ee5-327a9695ef18
+# ╠═87e2c807-b2f2-4aed-ac6a-d8546d08fc9a
+# ╠═999d6dde-128c-4c1c-8b52-e79e58c48788
+# ╠═ba030427-5039-41c1-931a-0c8608bc8812
+# ╠═24590d77-c80b-4e2f-9d40-fa45ab09ef7c
+# ╠═16820ac7-a170-4fd1-bea0-ec74c42b189d
+# ╠═6f1dc7fc-a81e-4f92-9952-abda25dd247c
+# ╠═1f3d1df8-ba70-468d-806f-f52fb29692d9
+# ╠═a0f56171-fae4-4fd9-a60f-a97ce18df330
+# ╠═d6091835-c724-4a0c-b31e-e8747fc70639
+# ╠═08c38122-1ff5-4fa6-a063-aa5a9a661444
+# ╠═4dea5df4-ffcb-4f3e-9b6e-31123f4393dd
+# ╠═f449f7e2-ac0a-4fa1-b43d-96a69007e051
+# ╠═505dd190-4b7f-4a4f-899e-d2153b558e37
+# ╠═641772f9-e782-4ab8-8759-0afc2553fcb5
+# ╟─7235d894-2734-4c52-8115-7f61f8876f17
+# ╠═ab093d43-bad4-493c-a93e-d15383864ba2
+# ╠═2e174298-52ba-40a4-ac36-b1cd7c80f734
+# ╠═ab0d38df-6374-488f-af48-372b7355b9c1
+# ╠═b18552aa-34ae-40fa-bfaa-3a2f0cf01625
+# ╟─d0badf93-5a98-4ea7-8bb1-433e3bec0cd2
+# ╠═a50c7532-b7af-4013-988c-4e60e32a2eaf
+# ╠═831532cc-85bf-4f50-b597-430b4f6104dd
+# ╠═84829f97-4a82-497a-8413-406633935d0f
+# ╠═f0167868-0a88-46a3-b774-034d16aea14f
+# ╠═17735315-181e-4aa6-a3eb-dea6748cef92
+# ╠═39d47efa-4791-4b4a-9e7f-4c64a5919faa
+# ╠═2374b2df-528b-4ff3-a0b3-6b6dee1e88d9
+# ╠═fc56d53a-4109-43b0-80fe-5b3b4561d5ea
+# ╟─d84fa26d-f5d4-423b-81c8-c0603309eb72
+# ╠═df975096-98c9-4135-ab3d-802b5a870d6f
+# ╠═839e13d9-434e-4834-99cf-1cc030671a3f
+# ╠═bab636c3-7d4e-4016-a933-8d84664ec69a
+# ╠═2481044a-88da-4c4f-b141-34a55b850eb8
+# ╠═bd20b6f2-05f2-4c13-b908-10d11657b452
+# ╠═cc0c6013-7693-45ab-819a-77df1f2f21bd
+# ╠═4fd9df31-5b59-40b3-87f5-06cf54e235d3
+# ╠═d96280f5-eaeb-4c78-a5d9-589254dd1acd
+# ╟─42dce2dc-f43d-44b7-9578-dda6baa8a8be
+# ╠═89a274f1-4e50-41eb-8569-714dd3ec1a5f
+# ╠═53c481e3-6b98-46b3-815a-423f5856926d
+# ╟─b1b19b64-b5cc-4a74-92e7-70dcee6218cf
+# ╠═4169b9c1-fc55-45a8-938a-1940d634dac0
+# ╟─1ad0b912-0d67-4e5f-a9a9-ec1d41ce3bb4
+# ╠═adee7e99-e2f5-44c2-a3c0-19ea858b60d2
+# ╟─9fede230-4e5b-413a-acde-8bc5ad375c23
+# ╠═0aa8959e-f90d-4404-bf3c-64c24196eb5e
+# ╠═e3567900-ce53-4381-827c-9c8db99d2df7
+# ╟─33c8a68f-a7ae-4a94-9774-9178b4556b0b
+# ╠═baf07f20-d4d7-4451-9f08-4551f65331ce
+# ╠═5da40376-b68d-49e1-b2a6-4676b6ba31b2
+# ╠═2ef0d503-d8e1-4351-bdb9-c2ab98faef58
+# ╠═6ec59e0f-b3d9-4105-9960-64b3455adede
+# ╠═958ff51e-3ce2-4d96-9776-98da9cd78d0a
+# ╠═9cd98d3b-8f1f-4063-bd79-088a40ab389a
+# ╠═c5725b36-4f18-4d5f-9d9d-35e59ea1ca77
+# ╠═fb1aa734-894a-49e5-a111-32951d6c2557
+# ╠═20da0774-ba3d-4867-8ff8-59aade8cd652
+# ╠═5a5635f7-0f89-495d-a209-8dcd36e1d3fa
+# ╠═a212baa6-d124-4a96-86b0-028caec25f55
+# ╠═9c95108b-f5e6-4bd2-9bd2-3feeb378e832
+# ╠═ee522965-b92e-4dfe-8101-e4563adce105
+# ╠═80db1392-37fc-4144-98eb-37a8e0eaf94d
+# ╠═ee1951aa-ed7a-4136-9c0a-1b613e64619c
+# ╠═803b97c5-d917-4658-8882-131c5e60ade9
+# ╠═e7de0378-ba5e-4a59-a058-4e5dad3af3c5
+# ╠═df245a2a-48a2-448f-a9a6-5427e3b6b1ec
+# ╟─f9d48509-2ca0-4c27-ab9c-2de58991f05c
+# ╠═779f13b0-38f4-4e19-9bc0-ee25d02dff1e
+# ╠═bde5e9db-81dd-41df-b2b1-f82efb7e860a
+# ╠═74ed6153-d900-47ed-9491-296da0896ddf
+# ╠═2e56e341-a50a-4ec6-b2f0-0bd5239457a8
+# ╠═2cd09b9a-a2c6-4a39-8ee2-784603d21e1f
+# ╠═9c42dc5b-eba2-447c-a053-01d9984f655c
+# ╠═6e11cf2a-a99c-4aca-9a6a-12d4d1f77c95
+# ╠═906c84c3-c60c-429d-bfb8-644ef927e5de
+# ╟─93de866d-d9c7-40bb-a8a6-ff2615c4fa96
+# ╟─bc0f37ea-66f6-41b3-a44b-182cf143127e
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
