@@ -282,7 +282,7 @@ Base.setindex!(ms::Molecular_Structure, value::Tuple{Tuple{Float64, Float64}, Tu
 )
 
 # ╔═╡ 3acf903f-a79a-4178-bd6e-399856b37e8b
-md"The atomic cores/ions will interact with the electrons, creating a force between the two. This function evaluates that force."
+md"The atomic cores/ions will interact with the electrons, creating a force between the two. This function evaluates that force. Here we calculate the force acting on all the ions, and it is returned in the form [[forcex1, forcex2, ..., forcexN], [forcey1, forcey2, ..., forceyN]]. However this function does not calculate the force as such, but rather returns a function (x,y) -> force(x,y), which gives the force on the ions acting on them due to a charge at position (x,y). Since we have charge densities, we will later need to sum over charges at many (x,y), evaluating the forces due to them every time using the function returned by this method."
 
 # ╔═╡ ae10e404-0fe5-44e9-8f66-b28ad9e468df
 function force_field(ms::Molecular_Structure)
@@ -292,8 +292,8 @@ function force_field(ms::Molecular_Structure)
         total_dVdy = zeros(Float64,length(ms.positions))
         for (i, (pos, params)) in enumerate(zip(ms.positions, ms.potential_params))
             # Compute the partial derivatives numerically for each atom's potential
-            dVdx = (ms.potential_function(pos[1], pos[2], (x + δ, y), params...) - ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x - δ, y), params...)) / (2 * δ)
-            dVdy = (ms.potential_function(pos[1], pos[2], (x, y + δ), params...) - ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x, y - δ), params...)) / (2 * δ)
+            dVdx = (ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x + δ, y),ms.length, ms.width, params...) - ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x - δ, y), ms.length, ms.width, params...)) / (2 * δ)
+            dVdy = (ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x, y + δ), ms.length, ms.width, params...) - ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x, y - δ), ms.length, ms.width, params...)) / (2 * δ)
             
             # Sum the contributions
             total_dVdx[i] += dVdx
@@ -314,14 +314,14 @@ function ionic_force(ms::Molecular_Structure)
 
     δ = 1e-8
     for i in 1:length(ms.positions)
-        x, y = ms.positions[i][1]*ms.length, ms.positions[i][2]*ms.width
+        x, y = ms.positions[i][1], ms.positions[i][2]
         
         # Create a structure without the i-th atom
         other_positions = [ms.positions[j] for j in 1:length(ms.positions) if j != i]
         other_params = [ms.potential_params[j] for j in 1:length(ms.potential_params) if j != i]
         
         # Potential function excluding the i-th atom
-        potential_excluding_i(x, y) = sum(ms.potential_function(pos[1], pos[2], (x, y), p...) for (pos, p) in zip(other_positions, other_params))
+        potential_excluding_i(x, y) = sum(ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x, y), ms.length, ms.width, p...) for (pos, p) in zip(other_positions, other_params))
         
         # Calculate the gradient of the potential function numerically
         dVdx = (potential_excluding_i(x + δ, y) - potential_excluding_i(x - δ, y)) / (2 * δ)
@@ -333,22 +333,28 @@ function ionic_force(ms::Molecular_Structure)
     end
     forces = [forcesx, forcesy]
 	average = zeros(2)
-	for i in 1:length(forces)
-		average += forces[i]
-	end
-	average .= average/length(forces)
 	for i in 1:length(forces[1])
-		forces[i] = forces[i] - average
+		average[1] += forces[1][i]
+		average[2] += forces[2][i]
 	end
-	forces/50
+	average .= average/length(forces[1])
+	for i in 1:length(forces[1])
+		forces[1][i] = forces[1][i] - average[1]
+		forces[2][i] = forces[2][i] - average[2]
+	end
+	retforce = []
+	for i in 1:length(forces[1])
+		push!(retforce, [forces[1][i], forces[2][i]])
+	end
+	retforce/10
 end
 
 # ╔═╡ 3c2d6888-33a2-4ad9-92c4-a0ea1aca6ef2
-md"It is convenient to define the potential of a single ion, and then sum over the contributions from all ions. The latter part is done in this function."
+md"It is convenient to define the potential of a single ion, and then sum over the contributions from all ions. The latter part is done in this function. This function uses fractional coordinates, since it never interacts with the ionic positions; It is only used to parametrize the Hamiltonian acting on the electrons, from which the chargedensity is calculated, which then gives the forces acting on the ions. FinDiffHamiltonian already takes into account the dimensions of the cell when calculating the potential, so "
 
 # ╔═╡ 2ca31a82-7dff-4f8d-b52c-60d683997bfa
 function potential_field(ms::Molecular_Structure)
-    return (x, y) -> sum(ms.potential_function(pos[1], pos[2], (x,y), params...) for (pos, params) in zip(ms.positions, ms.potential_params))
+    return (x, y) -> sum(ms.potential_function(pos[1]*ms.length, pos[2]*ms.width, (x,y), ms.length, ms.width, params...) for (pos, params) in zip(ms.positions, ms.potential_params))
 end
 
 # ╔═╡ a6d894b2-54a2-4ee2-95ee-54a370e120ff
@@ -356,32 +362,41 @@ md"We define the system:"
 
 # ╔═╡ 1c392cc4-f300-4a64-bc43-4ab035fb53cf
 begin
-	NL = 25
-	NW = 25
+	NL = 600
+	NW = 5
 	
-	L = 3.0
-	W = 3.0
+	L = 1000.0
+	W = 2.0
 
-	initial_positions = [(0.5, 0.8), (0.5,0.2)]
-	initial_velocities = [(0.0, -0.1), (0.0, 0.1)]
-	scales = [[0.01],[0.01]]
-	num_electrons = 1
-	masses = [1000, 1000]
+	initial_positions = [(0.5, 0.7), (0.5,0.3), (0.3,0.5)]
+	initial_velocities = [(0.0, 0.0), (0.0, 0.0), (0.0,0.0)]
+	scales = [[0.01],[0.01], [0.01]]
+	num_electrons = 2
 end
 
 # ╔═╡ b91ca1bd-6ae2-4b57-837d-529174f911e7
 md"Define the potential of the ions: "
 
 # ╔═╡ f1fbbdf5-4323-4bc9-93d7-65d31acc1d03
-function ionic_potential(ionx,iony,(x,y),scale)
-        return - scale/sqrt((ionx-x)^2 + (iony - y)^2 + 0.01)
+function ionic_potential(ionx,iony,(x,y), length, width,scale)
+        return - scale/sqrt((ionx-x*length)^2 + (iony - y*width)^2 + 0.01)
+end
+
+# ╔═╡ acd4b13e-41c8-41c3-96ea-eee648926532
+function ionic_potential_NN(ionx,iony,(x,y), length, width,scale)#The other potential only takes into account the potential from inside the cell; This also takes into account the potential from nearest neighbor cells. 
+	nextright = - scale/sqrt(((ionx+length)-x*length)^2 + (iony - y*length)^2 + 0.01)
+	nextleft = - scale/sqrt(((ionx-length)-x*length)^2 + (iony - y*length)^2 + 0.01)
+	nextup = - scale/sqrt((ionx-x*length)^2 + ((iony+width) - y*length)^2 + 0.01)
+	nextdown = - scale/sqrt((ionx-x*length)^2 + ((iony-width) - y*length)^2 + 0.01)
+	middle = - scale/sqrt((ionx-x*length)^2 + (iony - y*width)^2 + 0.01)
+	return middle + nextright + nextleft + nextup + nextdown + middle
 end
 
 # ╔═╡ 8491dbdd-5eca-4fb6-ab81-57e54e508c75
 md"We create our molecular structure:"
 
 # ╔═╡ aea01dfb-7569-4f06-93c1-b3f0d861930a
-mol = Molecular_Structure(L,W,initial_positions, initial_velocities, ionic_potential, scales, num_electrons)
+mol = Molecular_Structure(L,W,initial_positions, initial_velocities, ionic_potential_NN, scales, num_electrons)
 
 # ╔═╡ fe3e2333-2911-439a-b6da-4a6004e7fa62
 md"Because we have a periodic potential, it makes sense to think in terms of Bloch-functions. If you want to know what those are, check out the Bloch.jl notebook! 
@@ -435,11 +450,11 @@ let fig = Figure()
 
 	xs = range(0; step=L/NL, length=NL)
 	ys = range(0; step=W/NW, length=NW)
-	heatmap!(ax, xs, ys, reshape(abs2.(wft), (NL, NL)))
+	heatmap!(ax, xs, ys, reshape(abs2.(wft), (NL, NW)))
 	
 	Vs = [V1(x/L, y/W) for x in xs, y in ys]
 	contour!(ax, xs, ys, Vs; color=:white)
-	realspace = [(mol.positions[1][1]*L, mol.positions[1][2]*W), (mol.positions[2][1]*L, mol.positions[2][2]*W)]
+	realspace = [(POS[1]*L, POS[2]*W) for POS in mol.positions]
 	scatter!(ax, realspace; color=:red )
 	fig
 end
@@ -450,21 +465,21 @@ md"Now that we have our molecular structure, we want to propagate it in time! We
 # ╔═╡ 55e101e3-2329-4845-8fc7-7aac45f5680a
 function Force_Calculator(F::Function, density)
     #We calculate the Hellman-Feynmann forces, which are the expectation value of the derivative of the Hamiltonian with respect the state. In the Born-Oppenheimer approximation we assume that the system is always in the ground state, and we have a slater determinant of the NELECT eigenstates corresponding to the lowest energy eigenvalues. We don't actually have to calculate this, since the expectation value is just the integral over the derivative of the external potential with the density, which can be calculated as the sum of the densities of the single orbitals. Therefore, all we need are the derivative with respect to the potential and the NELECT lowest eigenvectors. 
-    forces = -sum(F(x/NL*L,y/NW*W)*density[x+(y-1)*NL] for x in 1:NL for y in 1:NW)
+    forces = -sum(F((x-1)/NL*L,(y-1)/NW*W)*density[x+(y-1)*NL] for x in 1:NL for y in 1:NW)
 	#The following part removes some numerical error by enforcing that the net force should be zero. 
 	average = zeros(2)
 	for i in 1:length(forces[1])
 		average[1] += forces[1][i]
 		average[2] += forces[2][i]
 	end
-	average .= average/length(forces)
+	average .= average/length(forces[1])
 	for i in 1:length(forces[1])
 		forces[1][i] = forces[1][i] - average[1]
 		forces[2][i] = forces[2][i] - average[2]
 	end
 	retforce = []
-	for i in length(forces[1])
-		push!(retforce, (forces[1][i], forces[2][i]))
+	for i in 1:length(forces[1])
+		push!(retforce, [forces[1][i], forces[2][i]])
 	end
 	retforce
 end
@@ -473,12 +488,12 @@ end
 md"This function takes a molecular structure, and a timestep (as well as the grid-numbers for the electronic wavefunction) and propagates the molecular structure by one time step. "
 
 # ╔═╡ 690a299e-d664-4fdc-8e4c-d9adedb03aed
-function propagate(ms::Molecular_Structure, timestep::Float64, NL, NW,density)
-    # We use the Leap-frog algorithm to update the positions and speeds at every time step. 
-    ms.positions = [ (mod(x + vx * timestep, 1), mod(y + vy * timestep, 1)) for ((x, y), (vx, vy)) in zip(ms.positions, ms.speeds) ]
-    ms.speeds = [ (vx + fx*timestep, vy + fy*timestep) for ((fx, fy), (vx, vy)) in zip(Force_Calculator(force_field(ms), density), ms.speeds) ]
+function propagate(ms::Molecular_Structure, timestep::Real, NL, NW,density)
+    # We use the Leap-frog algorithm to update the positions and speeds at every time step. Dividing the speeds by the cell dimension when updating the positions, is because the positions are given in fractional coordinates (so divided by dimensions).
+    ms.positions = [ (mod(x + vx * timestep/ms.length, 1), mod(y + vy * timestep/ms.width, 1)) for ((x, y), (vx, vy)) in zip(ms.positions, ms.speeds) ]
+    ms.speeds = [ (vx + fx*timestep, vy + fy*timestep) for ((fx, fy), (vx, vy)) in zip(ionic_force(ms) + (ms.length/NL)*(ms.width/NW)*Force_Calculator(force_field(ms), density), ms.speeds) ]
     return ms
-end#ionic_force(ms) + 
+end#
 
 # ╔═╡ 2f107914-b129-423e-8270-86d40c44d20e
 md"We can now propagate the structure by one time step. Every time the cell below is executed, the molecular structure is updated, and the simulation advances by a single time step."
@@ -488,6 +503,8 @@ begin
 chrg = calculate_band_charges(mol,regrid,NL,NW)
 V = potential_field(mol)
 propagate(mol,0.1,NL,NW,chrg)
+chrg = calculate_band_charges(mol,regrid,NL,NW)
+V = potential_field(mol)
 end
 
 # ╔═╡ 9f5ede07-7052-436f-9d09-43ad10100e5f
@@ -499,13 +516,13 @@ let fig = Figure()
 
 	xs = range(0; step=L/NL, length=NL)
 	ys = range(0; step=W/NW, length=NW)
-	heatmap!(ax, xs, ys, reshape(abs2.(wft), (NL, NL)))
+	heatmap!(ax, xs, ys, reshape(abs2.(wft), (NL, NW)))
 	
 	Vs = [V(x/L, y/W) for x in xs, y in ys]
 	contour!(ax, xs, ys, Vs; color=:white)
-	realspace = [(mol.positions[1][1]*L, mol.positions[1][2]*W), (mol.positions[2][1]*L, mol.positions[2][2]*W)]
+	realspace = [(POS[1]*L, POS[2]*W) for POS in mol.positions]
 	scatter!(ax, realspace; color=:red )
-
+print(realspace)
 	fig
 end
 
@@ -516,10 +533,10 @@ md"While refreshing to advance a single time step has its charm, we really want 
 function advance(mol, NL, NW, regrid)
 	chrg = calculate_band_charges(mol,regrid,NL,NW)
 	V = potential_field(mol)
-	propagate(mol,0.05,NL,NW,chrg)
+	propagate(mol,1,NL,NW,chrg)
 	xs = range(0; step=L/NL, length=NL)
 	ys = range(0; step=W/NW, length=NW)
-	return reshape(abs2.(chrg), (NL, NL)), [V(x/L, y/W) for x in xs, y in ys]
+	return reshape(abs2.(chrg), (NL, NW)), [V(x/L, y/W) for x in xs, y in ys]
 end
 
 # ╔═╡ 9743111b-b642-491b-87f7-d6536a5908ab
@@ -531,7 +548,7 @@ function play(mole, endofplay)
 	stepc, stepv = advance(mole,NL,NW,regrid)
 	push!(chargedata,stepc)
 	push!(potentialdata,stepv)
-	por = [(mole.positions[1][1]*L, mole.positions[1][2]*W)]
+	por = [(POS[1]*L, POS[2]*W) for POS in mole.positions]
 	push!(positionsl, por)
 	end
 	return chargedata, potentialdata, positionsl
@@ -539,22 +556,108 @@ end
 
 # ╔═╡ 39d3a8fc-f86a-489d-9223-e82b16ad6b9a
 begin
-	initial_positions2 = [(0.5, 0.5)]
-	initial_velocities2 = [(0.0, 0.0)]
-	scales2 = [[1]]
+	initial_positions2 = [(0.5, 0.49), (0.5,0.51)]
+	initial_velocities2 = [(0.0, 0.0), (0.0,0.0)]
+	scales2 = [[0.01],[0.01]]
 	num_electrons2 = 1
 end
 
 # ╔═╡ 863208d3-f59b-44ce-9474-1d5814bf1ae4
 mol2 = Molecular_Structure(L, W, initial_positions2, initial_velocities2, ionic_potential, scales2, num_electrons2)
 
+# ╔═╡ ef3e14c3-bb19-40a4-8cf5-84065fdb5e87
+function relaxation(ms::Molecular_Structure, damp::Float64, NL, NW, regrid)
+    #We want to find the minimum energy positions of the ions. for this, we use a damped md algorithm, where the speeds are reduced by a factor every time step. 
+	density = calculate_band_charges(mol,regrid,NL,NW)
+	while sum(norm.(ionic_force(ms) + Force_Calculator(force_field(ms), density))) > 0.05
+		density = calculate_band_charges(mol,regrid,NL,NW)
+		ms.positions = [ (mod(x + vx * 1/damp, 1), mod(y + vy * 1/damp, 1)) for ((x, y), (vx, vy)) in zip(ms.positions, ms.speeds) ]
+    	ms.speeds = [ ((vx/(damp) + fx*1/damp), (vy/(damp) + fy*1)/damp) for ((fx, fy), (vx, vy)) in zip(ionic_force(ms) + Force_Calculator(force_field(ms), density), ms.speeds) ]
+	end
+    return ms, sum(norm.(ionic_force(ms) + Force_Calculator(force_field(ms), density)))
+end#
+
+# ╔═╡ 2b2c0671-e10c-4a2f-a74f-d3cb17515949
+relaxation(mol2,1.02,NL, NW, regrid)
+
+# ╔═╡ cf9e4606-b859-4293-94e2-e9488447b58c
+function calc_energy(mole, NL, NW, regrid)
+	#calculate energy of the ions
+	energy = 0.0
+
+    for i in 1:length(mole.positions)
+        x, y = mole.positions[i][1], mole.positions[i][2]
+        
+        # Create a structure without the i-th atom
+        other_positions = [mole.positions[j] for j in 1:length(mole.positions) if j != i]
+        other_params = [mole.potential_params[j] for j in 1:length(mole.potential_params) if j != i]
+        
+        # Potential function excluding the i-th atom
+        potential_excluding_i(x, y) = sum(mole.potential_function(pos[1]*mole.length, pos[2]*mole.width, (x, y), mole.length, mole.width, p...) for (pos, p) in zip(other_positions, other_params))
+        
+        # Calculate the gradient of the potential function numerically
+        energy -= potential_excluding_i(x, y)#-Because we want the ions to repel each other
+	end
+	#Calculate energy if the electrons: 
+	NELECT = mole.num_electrons
+	if NELECT > NL*NW
+		NELECT = NL*NW
+	end
+    for i in 1:size(regrid,1)
+        H = Hermitian(FinDiffHamiltonian{Periodic}(potential_field(mole), mole.length, mole.width, regrid[i][1], regrid[i][2], NL, NW))
+        energy += sum(eigvals(H, 1:NELECT))
+    end
+    return energy
+end
+
+# ╔═╡ f44de8f1-8468-4511-865c-3a43ed650be3
+function Energy_sampler(mole, ax, NL, NW, regrid)
+	#This function is written to sample the energy surface along a given axis. So for any input structure, if either ax = 1 or ax = 2 the positions along x or y axis will be sampled accross all possible positions. 
+	energies = zeros(100)
+	if ax == 1
+		for i in 1:100
+			mole.positions[1] = (mod(mole.positions[1][1] + 1/100, 1), mole.positions[1][2])
+			energies[i] = calc_energy(mole, NL, NW, regrid)
+		end
+	else
+		for i in 1:100
+			mole.positions[1] = (mole.positions[1][1], mod(mole.positions[1][2] + 1/100, 1))
+			energies[i] = calc_energy(mole, NL, NW, regrid)
+		end
+	end
+	return energies
+end
+
+# ╔═╡ 06345a49-ea70-4983-99db-34ff12c6581d
+# ╠═╡ disabled = true
+#=╠═╡
+let fig = Figure()
+	ax = Axis(fig[1, 1]; aspect=L/W)
+
+	scatter!(ax, 1:200, Energy_sampler(mol2, 1, NL, NW, regrid); color=:red )
+	fig
+end
+  ╠═╡ =#
+
+# ╔═╡ 2e2e5e68-ac93-48e8-821e-b9d345a87112
+let fig = Figure()
+	ax = Axis(fig[1, 1])
+
+	scatter!(ax, 1:100, Energy_sampler(mol2, 1, NL, NW, regrid); color=:red )
+	fig
+end
+
 # ╔═╡ 01354cb3-2ef9-4c04-ab44-9372b0039111
-chargedata, potentialdata, pol = play(mol2, 25)
+# ╠═╡ disabled = true
+#=╠═╡
+chargedata, potentialdata, pol = play(mol2, 100)
+  ╠═╡ =#
 
 # ╔═╡ 99f7eb04-8073-4ffd-ad4a-d40a76e777ad
-@bind time Slider(range(1, 25; length=25))
+@bind time Slider(range(1, 100; length=100))
 
 # ╔═╡ 2c4c72eb-526b-489f-a055-c293639b88f1
+#=╠═╡
 let fig = Figure()
 	tim = Int(time)
 	print(tim)
@@ -569,6 +672,7 @@ let fig = Figure()
 	scatter!(ax, pol[tim]; color=:red )
 	fig
 end
+  ╠═╡ =#
 
 # ╔═╡ 7e91e705-f345-427c-9e8a-c41f13cc046a
 md"In principle we could already try to do Molecular dynamics like this for more than one electron, but we would not get good results. You can tell by the fact that the electron is simply localised at both cores, and there is no density between them. In reality, the density between the cores is increased, due to the antisymmetric nature of the wave-function. "
@@ -593,7 +697,7 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.4"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "3e76eb8f10bd0cb493025ff8c2a5c6e0894d9750"
 
@@ -2122,8 +2226,8 @@ version = "3.5.0+0"
 # ╠═97dbb2a4-d43f-4401-a167-8862837c196f
 # ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
 # ╟─50bf1130-d60d-40d4-aea0-024af72a69bd
-# ╟─7af30430-cacc-4956-919c-d5707ec0cbf1
-# ╟─98600be8-5246-41b6-8100-b221e76ee818
+# ╠═7af30430-cacc-4956-919c-d5707ec0cbf1
+# ╠═98600be8-5246-41b6-8100-b221e76ee818
 # ╟─fa349d2c-4db0-4293-a956-91d9cbe686b4
 # ╠═2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
 # ╠═d36a8189-ec05-4f51-9eb1-0125332bde43
@@ -2140,7 +2244,7 @@ version = "3.5.0+0"
 # ╠═f08bd49b-663f-49b9-816e-8e238536d502
 # ╠═ea768605-0b5b-462d-972f-fd6f2e729157
 # ╠═cae15917-e7cb-493e-a6d8-0637f1e1a1c2
-# ╟─3acf903f-a79a-4178-bd6e-399856b37e8b
+# ╠═3acf903f-a79a-4178-bd6e-399856b37e8b
 # ╠═ae10e404-0fe5-44e9-8f66-b28ad9e468df
 # ╟─907cb2eb-fc11-4dc1-bebc-eb3ff8bf8301
 # ╠═490f5f38-fe28-4301-986d-4326e796bc78
@@ -2150,6 +2254,7 @@ version = "3.5.0+0"
 # ╠═1c392cc4-f300-4a64-bc43-4ab035fb53cf
 # ╟─b91ca1bd-6ae2-4b57-837d-529174f911e7
 # ╠═f1fbbdf5-4323-4bc9-93d7-65d31acc1d03
+# ╠═acd4b13e-41c8-41c3-96ea-eee648926532
 # ╟─8491dbdd-5eca-4fb6-ab81-57e54e508c75
 # ╠═aea01dfb-7569-4f06-93c1-b3f0d861930a
 # ╟─fe3e2333-2911-439a-b6da-4a6004e7fa62
@@ -2172,9 +2277,15 @@ version = "3.5.0+0"
 # ╠═9743111b-b642-491b-87f7-d6536a5908ab
 # ╠═39d3a8fc-f86a-489d-9223-e82b16ad6b9a
 # ╠═863208d3-f59b-44ce-9474-1d5814bf1ae4
+# ╠═ef3e14c3-bb19-40a4-8cf5-84065fdb5e87
+# ╠═2b2c0671-e10c-4a2f-a74f-d3cb17515949
+# ╠═f44de8f1-8468-4511-865c-3a43ed650be3
+# ╠═cf9e4606-b859-4293-94e2-e9488447b58c
+# ╠═06345a49-ea70-4983-99db-34ff12c6581d
+# ╠═2e2e5e68-ac93-48e8-821e-b9d345a87112
 # ╠═01354cb3-2ef9-4c04-ab44-9372b0039111
 # ╠═99f7eb04-8073-4ffd-ad4a-d40a76e777ad
-# ╟─2c4c72eb-526b-489f-a055-c293639b88f1
+# ╠═2c4c72eb-526b-489f-a055-c293639b88f1
 # ╟─7e91e705-f345-427c-9e8a-c41f13cc046a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
