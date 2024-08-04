@@ -233,7 +233,7 @@ function Bloch_point(state)
 end
 
 # ╔═╡ 70539c8d-7565-4554-b60e-22220151b38b
-time_range = 0:0.1:10
+time_range = 0:0.1:100
 
 # ╔═╡ f0716eed-8be2-4031-9345-c28386fc1412
 initial_state = [1,0]
@@ -288,14 +288,27 @@ end
 
 # ╔═╡ 72d32760-3c54-406b-b59a-1d4a8f087488
 function Generic_Time_Evolution(time)#Write the function which returns the time evolution operator U(t) for a generic Hamiltonian. Assume ħ=1.
-	return cis(Hamiltonian_t(time)*time)
+	#We can't just copy the form for the time-indepenent energy, because for a time-dependent energy the time-evolution operator changes with time as well. 
+	#One way to numerically represent this, is to evolve in small steps. 
+	N = 10000 #Number of steps to divide the time evolution into 
+	U_t = cis(Hamiltonian_t(0)*0)
+	for i in 1:N
+		U_t = U_t * cis(Hamiltonian_t(i*time/N)*time/N)
+	end
+	return U_t
+end
+
+# ╔═╡ ba30cc54-cbe0-4814-99ad-44dd563619c0
+plotted_points = zeros(Float64, (3,length(time_range)))
+
+
+# ╔═╡ 1f515085-b4d5-4b75-b5c5-37b1bf51f9c7
+for i in 1:length(time_range)
+	plotted_points[:,i] = Bloch_point(Generic_Time_Evolution(time_range[i])*initial_state)
 end
 
 # ╔═╡ 7e2b7807-281b-4273-84f2-c5dd4954219c
 @bind time_2 PlutoUI.Slider(time_range)
-
-# ╔═╡ a6ce8356-940a-4b7a-ab89-40744fd7e8e9
-state_H_evolved = Generic_Time_Evolution(time_2) * initial_state
 
 # ╔═╡ a2a5cc59-08d1-498b-a62e-2302c6041e4c
 let # Define the sphere's radius and parameterize the surface using spherical coordinates
@@ -306,20 +319,15 @@ x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
 y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
 z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
 
-plotted_points = zeros(Float64, (3,length(time_range)))
-plotted_point = Bloch_point(state_H_evolved)
+indexred = Int(time_2*10 + 1)
 
-for i in 1:length(time_range)
-	plotted_points[:,i] = Bloch_point(Generic_Time_Evolution(time_range[i])*initial_state)
-end
 	
 # Plot the semi-transparent sphere
 fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
 
 lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
 
-scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
-
+scatter!(ax, [plotted_points[1,indexred]], [plotted_points[2,indexred]], [plotted_points[3,indexred]], color = :red)
 
 # Display the figure
 fig
@@ -346,7 +354,7 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "92795ba12cfb5c1cc04c9e63fabf524011234630"
 
@@ -511,7 +519,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -732,9 +740,9 @@ version = "0.10.3"
 
 [[deps.GeoInterface]]
 deps = ["Extents"]
-git-tree-sha1 = "9fff8990361d5127b770e3454488360443019bb3"
+git-tree-sha1 = "801aef8228f7f04972e596b09d4dba481807c913"
 uuid = "cf35fbd7-0cd7-5166-be24-54bfbe79505f"
-version = "1.3.5"
+version = "1.3.4"
 
 [[deps.GeometryBasics]]
 deps = ["EarCut_jll", "Extents", "GeoInterface", "IterTools", "LinearAlgebra", "StaticArrays", "StructArrays", "Tables"]
@@ -1484,9 +1492,9 @@ version = "0.1.1"
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "20833c5b7f7edf0e5026f23db7f268e4f23ec577"
+git-tree-sha1 = "6e00379a24597be4ae1ee6b2d882e15392040132"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.9.6"
+version = "1.9.5"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
@@ -1653,15 +1661,15 @@ version = "1.0.0"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
-git-tree-sha1 = "d9717ce3518dc68a99e6b96300813760d887a01d"
+git-tree-sha1 = "52ff2af32e591541550bd753c0da8b9bc92bb9d9"
 uuid = "02c8fc9c-b97f-50b9-bbe4-9be30ff0a78a"
-version = "2.13.1+0"
+version = "2.12.7+0"
 
 [[deps.XSLT_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "XML2_jll", "Zlib_jll"]
-git-tree-sha1 = "a54ee957f4c86b526460a720dbc882fa5edcbefc"
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgcrypt_jll", "Libgpg_error_jll", "Libiconv_jll", "Pkg", "XML2_jll", "Zlib_jll"]
+git-tree-sha1 = "91844873c4085240b95e795f692c4cec4d805f8a"
 uuid = "aed1982a-8fda-507f-9586-7b0439959a61"
-version = "1.1.41+0"
+version = "1.1.34+0"
 
 [[deps.Xorg_libX11_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxcb_jll", "Xorg_xtrans_jll"]
@@ -1880,8 +1888,9 @@ version = "3.5.0+0"
 # ╠═4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
 # ╠═f0201489-9e3c-462e-8978-3c47ed7fa569
 # ╠═72d32760-3c54-406b-b59a-1d4a8f087488
+# ╠═ba30cc54-cbe0-4814-99ad-44dd563619c0
+# ╠═1f515085-b4d5-4b75-b5c5-37b1bf51f9c7
 # ╠═7e2b7807-281b-4273-84f2-c5dd4954219c
-# ╠═a6ce8356-940a-4b7a-ab89-40744fd7e8e9
 # ╠═a2a5cc59-08d1-498b-a62e-2302c6041e4c
 # ╟─547c87cc-63bc-43ad-821b-f6103f35f599
 # ╟─00000000-0000-0000-0000-000000000001
