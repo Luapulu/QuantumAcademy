@@ -119,6 +119,9 @@ x5 >= 3 && x5 != 1
 # greater than 1 or less than -1
 x5 > 1 || x5 < -1
 
+# ╔═╡ 34aa7863-2f6e-44ec-8d4e-6b17aa0d3038
+md"# Complex Numbers"
+
 # ╔═╡ a5235c20-b927-4a24-b2e7-a350209ac8df
 md"`im` represents i and with it we can represent complex numbers. For more details on complex numbers in Julia, see [here](https://docs.julialang.org/en/v1/manual/complex-and-rational-numbers/#Complex-Numbers)."
 
@@ -170,6 +173,35 @@ x6 / (2 - im)
 
 # ╔═╡ 641772f9-e782-4ab8-8759-0afc2553fcb5
 exp(x6)
+
+# ╔═╡ 7235d894-2734-4c52-8115-7f61f8876f17
+md"# Addition and multiplication in the complex plane 
+
+Below you can fill in some values for adding and subtracting complex numbers. What happens when you add or subtract the complex conjugate? How do addition and subtraction work for complex numbers?"
+
+# ╔═╡ ab093d43-bad4-493c-a93e-d15383864ba2
+add1 = 1.0 + 1.0im #Write your numbers here
+
+# ╔═╡ 2e174298-52ba-40a4-ac36-b1cd7c80f734
+add2 = 1.0 - 1.0im#Write your numbers here
+
+# ╔═╡ ab0d38df-6374-488f-af48-372b7355b9c1
+added = add1 + add2
+
+# ╔═╡ b18552aa-34ae-40fa-bfaa-3a2f0cf01625
+let fig = Figure()
+	ax = Axis(fig[1, 1]; xlabel="real part", ylabel="imaginary part")
+	xlims!(ax, -3, 3)
+	ylims!(ax, -2, 2)
+
+	lines!(ax, [0.0, real(add1)], [0.0, imag(add1)], label="add1", color =:blue)
+	lines!(ax, [0.0, real(add2)], [0.0, imag(add2)], label="add2", color =:red)
+	lines!(ax, [0.0, real(added)], [0.0, imag(added)], label="added", color =:green)
+
+	axislegend(ax)
+	
+	fig
+end
 
 # ╔═╡ d0badf93-5a98-4ea7-8bb1-433e3bec0cd2
 md"Below, we have a list of random complex numbers (`original_zs`), which we multiply by a complex number `rot`. You'll see that multiplication by `rot` scales and rotates the picture. What happens when you set `rot` to `im` or `-im`? Play with the sliders to rotate and scale by different amounts."
@@ -392,7 +424,7 @@ md"# Our First Differential Equation"
 r = r_real + im * r_imag
 
 # ╔═╡ 2e56e341-a50a-4ec6-b2f0-0bd5239457a8
-step(x, r, dt) = x * (1 + dt*r)
+step(x, r, dt) = 0#Write the function which will apply a single time step
 
 # ╔═╡ 2cd09b9a-a2c6-4a39-8ee2-784603d21e1f
 y0 = 1
@@ -401,20 +433,18 @@ y0 = 1
 maxt = 2π
 
 # ╔═╡ 6e11cf2a-a99c-4aca-9a6a-12d4d1f77c95
-# outputs list of y values over time
+# outputs list of y values over time; The output should be a list of values (out), which contain a complex number for every time step. 
 function gen_spiral(init, r, n, t)
 	out = ComplexF64[init]  # list of values
-	y = out[1]
-	dt = t/n  # time step
-	for _ in 1:n  # n steps
-		y = step(y, r, dt)  # work out next y
-		push!(out, y)  # add y to list
-	end
+	
 	return out
 end
 
 # ╔═╡ 906c84c3-c60c-429d-bfb8-644ef927e5de
 spiral = gen_spiral(y0, r, 1000, maxt)
+
+# ╔═╡ 93de866d-d9c7-40bb-a8a6-ff2615c4fa96
+md"Below you can compare with the exact solution $exp(ir \cdot t)$, shown in yellow"
 
 # ╔═╡ bc0f37ea-66f6-41b3-a44b-182cf143127e
 let fig = Figure()
@@ -444,7 +474,7 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.2"
+julia_version = "1.10.3"
 manifest_format = "2.0"
 project_hash = "0283ffd3a4350efb49827b84a5c232ce6c7f14ce"
 
@@ -609,7 +639,7 @@ weakdeps = ["Dates", "LinearAlgebra"]
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "1.1.0+0"
+version = "1.1.1+0"
 
 [[deps.ConstructionBase]]
 deps = ["LinearAlgebra"]
@@ -1952,6 +1982,7 @@ version = "3.5.0+0"
 # ╠═f3efba21-1aab-4a13-9509-9d45fe5161be
 # ╠═07525873-366a-4b2c-8710-ea98962365c2
 # ╠═6faa0256-1190-45b3-82e7-14ff2ffb25ed
+# ╟─34aa7863-2f6e-44ec-8d4e-6b17aa0d3038
 # ╟─a5235c20-b927-4a24-b2e7-a350209ac8df
 # ╠═ebefa4fd-d15e-4652-9caf-2662d1edd62b
 # ╠═a6dd4796-d36f-4a13-9ee5-327a9695ef18
@@ -1969,6 +2000,11 @@ version = "3.5.0+0"
 # ╠═f449f7e2-ac0a-4fa1-b43d-96a69007e051
 # ╠═505dd190-4b7f-4a4f-899e-d2153b558e37
 # ╠═641772f9-e782-4ab8-8759-0afc2553fcb5
+# ╟─7235d894-2734-4c52-8115-7f61f8876f17
+# ╠═ab093d43-bad4-493c-a93e-d15383864ba2
+# ╠═2e174298-52ba-40a4-ac36-b1cd7c80f734
+# ╠═ab0d38df-6374-488f-af48-372b7355b9c1
+# ╠═b18552aa-34ae-40fa-bfaa-3a2f0cf01625
 # ╟─d0badf93-5a98-4ea7-8bb1-433e3bec0cd2
 # ╠═a50c7532-b7af-4013-988c-4e60e32a2eaf
 # ╠═831532cc-85bf-4f50-b597-430b4f6104dd
@@ -1977,7 +2013,7 @@ version = "3.5.0+0"
 # ╠═17735315-181e-4aa6-a3eb-dea6748cef92
 # ╠═39d47efa-4791-4b4a-9e7f-4c64a5919faa
 # ╠═2374b2df-528b-4ff3-a0b3-6b6dee1e88d9
-# ╟─fc56d53a-4109-43b0-80fe-5b3b4561d5ea
+# ╠═fc56d53a-4109-43b0-80fe-5b3b4561d5ea
 # ╟─d84fa26d-f5d4-423b-81c8-c0603309eb72
 # ╠═df975096-98c9-4135-ab3d-802b5a870d6f
 # ╠═839e13d9-434e-4834-99cf-1cc030671a3f
@@ -2025,6 +2061,7 @@ version = "3.5.0+0"
 # ╠═9c42dc5b-eba2-447c-a053-01d9984f655c
 # ╠═6e11cf2a-a99c-4aca-9a6a-12d4d1f77c95
 # ╠═906c84c3-c60c-429d-bfb8-644ef927e5de
-# ╠═bc0f37ea-66f6-41b3-a44b-182cf143127e
+# ╟─93de866d-d9c7-40bb-a8a6-ff2615c4fa96
+# ╟─bc0f37ea-66f6-41b3-a44b-182cf143127e
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
