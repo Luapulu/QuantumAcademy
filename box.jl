@@ -1,6 +1,5 @@
 ### A Pluto.jl notebook ###
-
-# v0.19.40
+# v0.19.45
 
 using Markdown
 using InteractiveUtils
@@ -17,7 +16,7 @@ end
 
 # ╔═╡ e22afb18-acbe-49ec-8b0f-0d5d311b9e09
 begin
-	import LinearAlgebra
+	import LinearAlgebra  # overload mul!, ishermitian, etc.
 	using LinearAlgebra
 end
 
@@ -25,100 +24,120 @@ end
 using PlutoTest
 
 # ╔═╡ 30a856d7-01f1-411a-ab26-589dfbed9a73
-using PlutoUI: Slider
+using PlutoUI: Slider  # interactive slider
 
 # ╔═╡ 52aaf95c-818a-495b-86c3-d1cc73f60033
-using Base: Callable
+using Base: Callable  # alias for something function-like
 
 # ╔═╡ edbc5861-96b0-4d29-b158-f60f82c77f37
-using KrylovKit
+using KrylovKit  # Krylov methods for large matrices
 
 # ╔═╡ 896a6291-0027-4849-85cf-43e05082e5a8
-using GLMakie
+using GLMakie  # plotting
+
+# ╔═╡ 271148a8-5410-46b9-a743-46bb18199b3d
+using FFTW  # Fourier transform for Pseudo Spectral
 
 # ╔═╡ dcbacb58-a77d-4ec2-aa10-bf6b72d5f33e
-import Base
+import Base  # overload base functions like getindex
 
 # ╔═╡ 51954bdb-3cd7-428e-a7ad-7a02be2f06b4
-function wavefunction(ψ, nx, ny; normalise=true)
-    rx = range(0; step=1/nx, length=nx)
-    ry = range(0;  step=1/ny,  length=ny)
-    mat = [ψ(x, y) for x in rx, y in ry]
-    normalise && normalize!(mat)
-    return mat
+begin  # creates a matrix representing the wavefunction evaluated on an nx by ny grid
+	function wavefunction(ψ, ::Type{T}, nx, ny; normalise=true) where T
+	    rx = range(0; step=1/nx, length=nx)
+	    ry = range(0;  step=1/ny,  length=ny)
+	    mat = T[ψ(x, y) for x in rx, y in ry]
+	    normalise && normalize!(mat)
+	    return mat
+	end
+
+	function wavefunction(ψ, nx, ny; normalise=true)
+		wavefunction(ψ, ComplexF64, nx, ny; normalise=normalise)
+	end
 end
 
 # ╔═╡ 504fa869-0faa-4f0c-943a-94dd1b57757b
-testnx, testny = (3, 7)
+testnx, testny = (8, 13)
+
+# ╔═╡ f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
+testlx, testly = (3.5, 8.0)
 
 # ╔═╡ e6a95c73-cc53-4323-a033-afb10b5511c3
 testnn = testnx * testny
 
-# ╔═╡ 44773e3c-37e1-4c1f-a859-c20943edd5f2
-testv = randn(testnn)
-
 # ╔═╡ 989bbaf8-f3e1-4c0e-941b-25480bbcb272
-testwf = wavefunction(testnx, testny) do x, y
-	cospi(4x) * sinpi(2y)
+testwf = wavefunction(testnx, testny; normalise=false) do x, y
+	cispi(6x - 4y)
 end
 
 # ╔═╡ e4abdbe5-9da6-4454-9817-d97cbc471c93
 begin
 	abstract type BoundaryCondition end
 	struct Periodic <: BoundaryCondition end
-	struct Box <: BoundaryCondition end
+	struct InfWell <: BoundaryCondition end
 end
 
-# ╔═╡ 9e7c66f3-a2f2-4470-bd7b-651963a8ad77
+# ╔═╡ f8a3d038-07ea-456a-9b57-b1332352bd5d
 begin
-	struct FinDiffHamiltonian{
-	    BC <: BoundaryCondition,
-	    T <: Real,
-	    F <: Callable
-	} <: AbstractMatrix{T}
-	    V::F
-	    xlen::T
-	    ylen::T
-	    nx::Int
-	    ny::Int
-		function FinDiffHamiltonian{BC, T, F}(V, xlen, ylen, nx, ny) where {
-			BC <: BoundaryCondition, T <: Real, F <: Callable
+	struct QuantumBox{BC <: BoundaryCondition, T <: Real, F <: Callable}
+		V::F
+		lx::T
+		ly::T
+		nx::Int
+		ny::Int
+	end
+
+	# Some convenience methods to construct the box
+	function QuantumBox{BC, T}(V::F, lx, ly, nx, ny) where {
+		BC <: BoundaryCondition, T <: Real, F <: Callable
+	}
+		QuantumBox{BC, T, F}(V::F, lx, ly, nx, ny)
+	end
+
+	function QuantumBox{BC}(V::F, lx::TX, ly::TY, nx, ny) where {
+		BC <: BoundaryCondition, TX <: Real, TY <: Real, F <: Callable
+	}
+		QuantumBox{BC, promote_type(TX, TY), F}(V::F, lx, ly, nx, ny)
+	end
+end
+
+# ╔═╡ 97dbb2a4-d43f-4401-a167-8862837c196f
+testV(ix, iy, nx, ny) = sinpi(4 * ix / nx) * cospi(2 * iy / ny)
+
+# ╔═╡ b4c72de8-92f9-4da6-91c8-0083ca524939
+testbox = QuantumBox{Periodic}(testV, testlx, testly, testnx, testny)
+
+# ╔═╡ 9e7c66f3-a2f2-4470-bd7b-651963a8ad77
+begin  # matrix type to represent the Hamiltonian
+	struct FinDiffHamiltonian{BC, T, QB <: QuantumBox{BC, T}} <: AbstractMatrix{T}
+	    box::QB
+		function FinDiffHamiltonian(box::QuantumBox{BC, T}) where {
+			BC <: BoundaryCondition, T <: Real
 		}
-			nx < 3 && throw(ArgumentError("nx=$nx must not be smaller than 3"))
-			ny < 3 && throw(ArgumentError("ny=$ny must not be smaller than 3"))
-			new{BC, T, F}(V, xlen, ylen, nx, ny)
+			box.nx < 3 && throw(ArgumentError("nx=$nx must not be smaller than 3"))
+			box.ny < 3 && throw(ArgumentError("ny=$ny must not be smaller than 3"))
+			new{BC, T, typeof(box)}(box)
 		end
 	end
 
-	function FinDiffHamiltonian{BC, T}(V::F, xlen, ylen, nx, ny) where {
-		BC <: BoundaryCondition, T <: Real, F <: Callable
+	function FinDiffHamiltonian{BC, T}(V, lx, ly, nx, ny) where {
+		BC <: BoundaryCondition, T<: Real
 	}
-		FinDiffHamiltonian{BC, T, F}(V::F, xlen, ylen, nx, ny)
+		FinDiffHamiltonian(QuantumBox{BC, T}(V, lx, ly, nx, ny))
 	end
 
-	function FinDiffHamiltonian{BC}(V::F, xlen::TX, ylen::TY, nx, ny) where {
-		BC <: BoundaryCondition, TX <: Real, TY <: Real, F <: Callable
-	}
-		FinDiffHamiltonian{BC, promote_type(TX, TY), F}(V::F, xlen, ylen, nx, ny)
+	function FinDiffHamiltonian{BC}(
+		V, lx, ly, nx, ny
+	) where BC <: BoundaryCondition
+		FinDiffHamiltonian(QuantumBox{BC}(V, lx, ly, nx, ny))
 	end
 end
 
 # ╔═╡ c23f8ec1-694a-473e-8486-f854aaadcc62
-const FDH = FinDiffHamiltonian
-
-
-# ╔═╡ f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
-testxl, testyl = (3.5, 8.0)
-
-# ╔═╡ 97dbb2a4-d43f-4401-a167-8862837c196f
-testV(x, y) = sinpi(4x) * cospi(2*y)
-
-# ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
-testH = FinDiffHamiltonian{Periodic}(testV, testxl, testyl, testnx, testny)
-
+const FDH = FinDiffHamiltonian  # alias FDH for FinDiffHamiltonian
 
 # ╔═╡ a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
-Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
+Base.size(H::FinDiffHamiltonian) = (N = H.box.nx * H.box.ny; (N, N))
 
 # ╔═╡ 50bf1130-d60d-40d4-aea0-024af72a69bd
 # non-allocating version of Base reshape.
@@ -126,23 +145,27 @@ Base.size(H::FinDiffHamiltonian) = (N = H.nx * H.ny; (N, N))
 reshape2(a, dims) = invoke(Base._reshape, Tuple{AbstractArray,typeof(dims)}, a, dims)
 
 # ╔═╡ 7af30430-cacc-4956-919c-d5707ec0cbf1
-function LinearAlgebra.mul!(
-	w::AbstractVector, H::FinDiffHamiltonian{Periodic, T}, v::AbstractVector
+function LinearAlgebra.mul!(  #multiply H with v and write result into w
+	w::AbstractVector, (; box)::FinDiffHamiltonian{Periodic, T}, v::AbstractVector
 ) where T <: Real
+	# reshape to matrix for convenient indexing
+	wmat = reshape2(w, (box.nx, box.ny))
+	vmat = reshape2(v, (box.nx, box.ny))
+
+	# numerical factors
+	ax = (box.nx / box.lx)^2
+	ay = (box.ny / box.ly)^2
+	h  = T(1/2)
 	
-	wmat = reshape2(w, (H.nx, H.ny))
-	vmat = reshape2(v, (H.nx, H.ny))
-
-	ax = (H.nx / H.xlen)^2
-	ay = (H.ny / H.ylen)^2
-	h  = T(1//2)
-
-	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
+	# convenience method to evaluate potential at grid point (ix, iy)
+	V(ix, iy) = box.V(ix, iy, box.nx, box.ny)
 
 	# adding @inbounds and @simd doesn't improve performance much
-	Threads.@threads for iy in 1:H.ny
-		iyb = mod1(iy-1, H.ny)
-		iyt = mod1(iy+1, H.ny)
+	# loop doesn't depend on execution order => multithreading possible
+	Threads.@threads for iy in 1:box.ny
+		# mod1 accounts for periodic boundary conditions
+		iyb = mod1(iy-1, box.ny)
+		iyt = mod1(iy+1, box.ny)
 
 		# left
 		H1y  = ax * (-h * vmat[end, iy] + vmat[1, iy] - h * vmat[2, iy])
@@ -151,7 +174,7 @@ function LinearAlgebra.mul!(
 		wmat[1, iy] = H1y
 
 		# middle
-		for ix in 2:(H.nx-1)
+		for ix in 2:(box.nx-1)
 			# 10% faster not to evaluate mod1 for ix indices here
 			Hxy  = ax * (-h*vmat[ix-1, iy] + vmat[ix, iy] - h*vmat[ix+1, iy])
 			Hxy += ay * (-h*vmat[ix, iyb] + vmat[ix, iy] - h*vmat[ix, iyt])
@@ -162,7 +185,7 @@ function LinearAlgebra.mul!(
 		# right
 		Hey  = ax * (-h * vmat[end-1, iy] + vmat[end, iy] - h * vmat[1, iy])
 		Hey += ay * (-h * vmat[end, iyb] + vmat[end, iy] - h * vmat[end, iyt])
-		Hey += V(H.nx, iy) * vmat[end, iy]
+		Hey += V(box.nx, iy) * vmat[end, iy]
 		wmat[end, iy] = Hey
 	end
 
@@ -173,20 +196,22 @@ end
 function Base.getindex(
 	H::FDH{Periodic, T}, (ix, iy), (jx, jy)
 ) where T <: Real
-	@boundscheck begin
+	# @boundscheck macro allows caller to elide boundschecking by using @inbounds
+	@boundscheck begin  # checkbounds throws error if index <= 0 or > H.nx * H.ny
 		checkbounds(H, ix, iy)
 		checkbounds(H, jx, jy)
 	end
-    ax = (H.nx / H.xlen)^2
-    ay = (H.ny / H.ylen)^2
+	box = H.box
+    ax = (box.nx / box.lx)^2
+    ay = (box.ny / box.ly)^2
     if ix == jx
         if iy == jy
-            Vxy = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
+            Vxy = box.V(ix, iy, box.nx, box.ny)
             return ax + ay + Vxy
-        elseif abs(iy - jy) == 1 || abs(iy - jy) == H.ny - 1
+        elseif abs(iy - jy) == 1 || abs(iy - jy) == box.ny - 1
             return -ay / 2
         end
-    elseif iy == jy && (abs(ix - jx) == 1 || abs(ix - jx) == H.nx - 1)
+    elseif iy == jy && (abs(ix - jx) == 1 || abs(ix - jx) == box.nx - 1)
         return -ax / 2
     end
 
@@ -194,9 +219,11 @@ function Base.getindex(
 end
 
 # ╔═╡ fa349d2c-4db0-4293-a956-91d9cbe686b4
-function Base.getindex(H::FDH{Periodic, T}, i::Integer, j::Integer) where T <: Real
-	inds = Base.CartesianIndices((H.nx, H.ny))
-	ic = inds[i] |> Tuple
+function Base.getindex(
+	H::FDH{Periodic, T}, i::Integer, j::Integer
+) where T <: Real
+	inds = Base.CartesianIndices((H.box.nx, H.box.ny))
+	ic = inds[i] |> Tuple  # converts CartesianIndex(ix, iy) to Tuple: (ix, iy)
 	jc = inds[j] |> Tuple
 	return H[ic, jc]
 end
@@ -204,12 +231,22 @@ end
 # ╔═╡ bec6b558-b794-4d7e-9dd0-fba13a4b5c61
 md"### Wave Function"
 
+# ╔═╡ 92e91200-3b8a-4dab-9b3a-49850250042b
+md"### Quantum Box"
+
 # ╔═╡ 61883ba0-0da8-43ec-9f3a-e5f6367492f3
 md"### Finite Differences Hamiltonian"
 
-# ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
-@test testH * testv ≈ Matrix(testH) * testv
+# ╔═╡ f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
+testH = FinDiffHamiltonian{Periodic}(testV, testlx, testly, testnx, testny)
 
+# ╔═╡ 44773e3c-37e1-4c1f-a859-c20943edd5f2
+testv = randn(testnn)
+
+# ╔═╡ 2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
+# compare the above mul! implementation to builtin matrix multiplication for Matrix
+# Matrix(testH) is built using getindex to get elements of the matrix
+testH * testv ≈ Matrix(testH) * testv
 
 # ╔═╡ 5133587f-265a-40a7-8d5d-08d28ccab7a7
 LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
@@ -221,57 +258,169 @@ LinearAlgebra.ishermitian(H::FinDiffHamiltonian) = true
 @test ishermitian(Matrix(testH))
 
 # ╔═╡ 5e6fb2f7-ba1c-4872-b0ca-a0f120d6eaed
-let x = rand(testnn), y = rand(testnn)
+let x = randn(testnn), y = randn(testnn)  # test symmetric
 	@test dot(x, testH * y) ≈ dot(y, testH * x) ≈ dot(y, testH, x) ≈ dot(x, testH, y)
 end
 
 # ╔═╡ 65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
-function LinearAlgebra.opnormInf(H::FDH{Periodic})
-	ax = (H.nx / H.xlen)^2
-    ay = (H.ny / H.ylen)^2
-	return maximum(CartesianIndices((H.nx, H.ny))) do i
+# Some Krylov libraries require an estimate of the supremeum operator norm of H
+# This is a more efficient implementation than the default
+# See docs for opnorm in the LinearAlgebra docs
+function LinearAlgebra.opnormInf((; box)::FDH{Periodic})
+	ax = (box.nx / box.lx)^2
+    ay = (box.ny / box.ly)^2
+	return maximum(CartesianIndices((box.nx, box.ny))) do i
 		ix, iy = Tuple(i)
-		Vxy = H.V((ix-1) / H.nx, (iy-1) / H.ny)
+		Vxy = box.V(ix, iy, box.nx, box.ny)
 		return abs(ax + ay + Vxy) + abs(ax) + abs(ay)
 	end
 end
 
 # ╔═╡ 4a41cf38-7259-4316-be29-703ea0e3101a
-@test opnorm(testH, Inf) ≈ opnorm(Matrix(testH), Inf)
+@test opnorm(testH, Inf) ≈ opnorm(Matrix(testH), Inf)  # compare to fallback method
 
-# ╔═╡ a1c8fa54-57d4-4ae1-b775-8522b8c2090d
-md"### Even-Odd Splitting"
+# ╔═╡ ae470b2b-ad8d-4bf9-bb11-45c8bdf305e6
+md"## Pseudo Spectral Splitting"
 
-# ╔═╡ b9ea4c05-5018-4421-b43b-c1bf43ecee32
-struct EvenOddSplit end
+# ╔═╡ f6642628-07a6-4497-ada6-5dba803e5452
+specxs = range(0; step=testlx/testnx, length=testnx)
 
-# ╔═╡ c3cb2999-66af-4e6f-afa7-ac19d844dce6
-# ╠═╡ disabled = true
-#=╠═╡
-function step!(
-	w::AbstractVector,
-	v::AbstractVector,
-	dt::Real,
-	integrator::EvenOddSplit
-)
-	wmat = reshape(w, (H.nx, H.ny))
-	vmat = reshape(v, (H.nx, H.ny))
+# ╔═╡ 7219e9ac-7e0f-4ffa-b573-9f9c7cc13c5f
+specys = range(0; step=testly/testny, length=testny)
 
-	ax = (H.nx / H.xlen)^2
-	ay = (H.ny / H.ylen)^2
-	h  = T(1//2)
+# ╔═╡ 5601e947-849d-4cf7-bb89-09bbd0572bdf
+testdt = 1.5
 
-	V(ix, iy) = H.V(T((ix-1) // H.nx), T((iy-1) // H.ny))
+# ╔═╡ 1a0131cd-a929-4ea4-8b37-8c5235f1e9fc
+test_cis = [cis(-testdt * ((6π / testlx)^2 + (4π / testly)^2) / 2) * cispi(6x/testlx - 4y/testly) for x in specxs, y in specys]
 
-	
+# ╔═╡ 034717f1-e750-40a5-b0d2-020131006dfd
+testFs = fft(testwf)
+
+# ╔═╡ 066e849c-6ab6-4f35-8b3f-4a83c06785c2
+function fourier_cis(Fs, lx, ly, dt)
+	nx, ny = size(Fs)
+	out = zeros(ComplexF64, nx, ny)
+
+	for ky in 0:(ny - 1)
+		dy = ky <= ny ÷ 2 ? (2π * ky / ly)^2 : (2π * (ny - ky) / ly)^2
+		for kx in 0:(nx-1)
+			dx = kx <= nx ÷ 2 ? (2π * kx / lx)^2 : (2π * (nx - kx) / lx)^2
+			out[kx + 1, ky + 1] = cis(-dt * (dx + dy) / 2) * Fs[kx + 1, ky + 1]
+		end
+	end
+
+	out
 end
-  ╠═╡ =#
+
+# ╔═╡ ef9d6e00-2bb1-4cd9-81b4-af0b3180e0df
+cisFs = fourier_cis(testFs, testlx, testly, testdt)
+
+# ╔═╡ f91b432b-2e48-4f7d-b39d-77384cbe5862
+cis_spec = ifft(cisFs)
+
+# ╔═╡ 9c04d663-f168-4b61-b933-cc6232fb3b7f
+@test cis_spec ≈ test_cis
+
+# ╔═╡ 5296126b-50a6-4438-99f7-2ffb936e4273
+struct PseudoSpectral end
+
+# ╔═╡ e227da11-1d91-40a8-9c3f-1cc3f4af3b34
+function step!(w, v, dt::Real,
+	(; V, nx, ny, lx, ly)::QuantumBox,
+	method::PseudoSpectral
+)
+	axes(w) == (1:nx, 1:ny) || throw(
+		ArgumentError("w must have axes (1:$nx, 1:$ny)"))
+	axes(v) == (1:nx, 1:ny) || throw(
+		ArgumentError("v must have axes (1:$nx, 1:$ny)"))
+	
+	# copy from v to w and evolve by potential energy
+	for iy in 1:ny
+		for ix in 1:nx
+			w[ix, iy] = cis(-dt * V(ix, iy, nx, ny)) * v[ix, iy]
+		end
+	end
+	
+	# fourier transform in-place in wmat
+	fft!(w)
+
+	for ky in 0:(ny - 1)
+		# this is numerical fourier weirdness
+		# will the compiler split this? If not, maybe explicitly split the loops up
+		dy = ky <= ny ÷ 2 ? (2π * ky / ly)^2 : (2π * (ny - ky) / ly)^2
+		for kx in 0:(nx - 1)
+			dx = kx <= nx ÷ 2 ? (2π * kx / lx)^2 : (2π * (nx - kx) / lx)^2
+			E = (dx + dy) / 2
+			w[kx + 1, ky + 1] *= cis(-dt * E)
+		end
+	end
+
+	# fourier transform back
+	ifft!(w)
+
+	w
+end
+
+# ╔═╡ ebec0708-62bc-4763-9c08-59badd5f463f
+specbox = QuantumBox{Periodic}((ix, iy, nx, ny) -> 0, testlx, testly, testnx, testny)
+
+# ╔═╡ e007671b-2374-43fb-9afb-d7abf4510d2d
+spectest1 = step!(similar(testwf), testwf, testdt, specbox, PseudoSpectral())
+
+# ╔═╡ d1589bf3-2550-413e-b591-6fe5ffe82dc3
+let fig = Figure()
+	ax = Axis(fig[1, 1])
+	lines!(ax, real.(test_cis[:, 3]))
+	lines!(ax, real.(cis_spec[:, 3]))
+	lines!(ax, real.(spectest1[:, 3]))
+
+	fig
+end
+
+# ╔═╡ 2b3cd93a-6e7f-4c26-9870-824818a78978
+@test spectest1 ≈ cis_spec
+
+# ╔═╡ 64da27e9-c766-41c4-90b7-22a4aac9582d
+@test spectest1 ≈ test_cis
+
+# ╔═╡ 9d84d9e7-7479-49e0-9f15-4e37433bebc0
+spec_exact = cis(-testdt * ((6π / testlx)^2 + ((4π / testly))^2) / 2) .* testwf
+
+# ╔═╡ 58d6ef16-93cf-4187-b115-e397c2e93030
+@test spec_exact ≈ spectest1
+
+# ╔═╡ 1186c60c-cacb-421f-9cbb-0eb34a88d2a0
+function evolve(init::AbstractMatrix, t::Real, n::Integer, box::QuantumBox, method)
+	series = Vector{typeof(init)}(undef, n)
+	state = init
+	dt = t / n
+	for i in 1:n
+		cache = similar(init)
+		step!(cache, state, dt, box, method)
+		series[i] = state = cache
+	end
+	series
+end
+
+# ╔═╡ ac133a1f-cd23-4b17-999e-2ab5c9346b24
+specseries = evolve(testwf, 20 * testdt, 20, specbox, PseudoSpectral())
+
+# ╔═╡ 5dde65d6-78f6-4c81-a576-94c349d43833
+@test specseries[1] ≈ test_cis
 
 # ╔═╡ 7449bbcb-88a8-46a0-8a84-a53a85f5d7b6
 md"### Krylov Exponential"
 
+# ╔═╡ 32b47ff3-0b24-49b2-a979-634e698a36cb
+test_krylov, _ = exponentiate(testH, -im*testdt, vec(testwf); maxiter=50)
+
+# ╔═╡ a636b9f6-1473-4c44-9390-5b4f34fb5ccb
+md"# Simulation"
+
 # ╔═╡ c9f84b1e-49e5-4619-add9-b73c804333e0
-function V(x, y)
+function V1(ix, iy, nx, ny)
+	(x, y) = (ix / nx, iy / ny)
     w = 0.1
     d = 0.1
     b = 0.33
@@ -293,10 +442,10 @@ function V(x, y)
 end
 
 # ╔═╡ 397957ee-c671-4446-ab4e-1e500148c3bb
-nx, ny = (100, 100)
+Nx, Ny = (50, 50)
 
 # ╔═╡ 6e5ae6a4-a18c-48bf-85b9-9fe9144fe837
-wf0 = wavefunction(nx, ny) do x, y
+WF = wavefunction(ComplexF32, Nx, Ny) do x, y
 	r = 0.33
     dx = x - 0.25
     dy = y - 0.5
@@ -305,34 +454,37 @@ wf0 = wavefunction(nx, ny) do x, y
 end
 
 # ╔═╡ 018941cf-7347-4d16-a950-d5b9acd78234
-heatmap(abs2.(wf0))
-
-# ╔═╡ 6f16d034-d59e-4719-bcad-b066be37f4f1
-NN = nx * ny
+heatmap(abs2.(WF))
 
 # ╔═╡ 1948a0c2-59a6-41af-a2ba-443c06418a0f
-xlen, ylen = (100.0, 60.0)
+Lx, Ly = (100.0, 60.0)
+
+# ╔═╡ 04682028-0fd7-480d-8e65-2f91bdaadad9
+Box1 = QuantumBox{Periodic}(V1, Lx, Ly, Nx, Ny)
 
 # ╔═╡ ec673526-580d-488a-aaa3-7b9a686fd02a
-H = FinDiffHamiltonian{Periodic}(V, xlen, ylen, nx, ny)
+H1 = FinDiffHamiltonian(Box1)
+
+# ╔═╡ 586510db-6621-40b4-adb9-255411c4c8a6
+time_steps = 250
 
 # ╔═╡ 97315f46-9e31-45d6-99e7-98cc43924b59
-@bind tend Slider(range(0, 500; length=100))
+@bind tindex Slider(1:time_steps)
 
-# ╔═╡ 32b47ff3-0b24-49b2-a979-634e698a36cb
-wft, _ = exponentiate(H, -im*tend, vec(wf0); maxiter=200)
+# ╔═╡ 2248381d-477e-449d-a077-9fe5f0e3c19c
+series = evolve(WF, 100, time_steps, Box1, PseudoSpectral())
 
-# ╔═╡ 7c1aa6e2-6877-4f06-b86c-35c32b37c754
+# ╔═╡ f241b951-7e1e-4e8b-a44b-b8b503434fdf
 let fig = Figure()
-	ax = Axis(fig[1, 1]; aspect=xlen/ylen)
+	ax = Axis(fig[1, 1]; aspect=Lx/Ly)
 	hidedecorations!(ax)
 	hidespines!(ax)
 
-	xs = range(0; step=xlen/nx, length=nx)
-	ys = range(0; step=ylen/ny, length=ny)
-	heatmap!(ax, xs, ys, reshape(abs2.(wft), (H.nx, H.ny)))
+	xs = range(0; step=Lx/Nx, length=Nx)
+	ys = range(0; step=Ly/Ny, length=Ny)
+	heatmap!(ax, xs, ys, reshape(abs2.(series[tindex]), (H1.box.nx, H1.box.ny)))
 	
-	Vs = [V(x/xlen, y/ylen) for x in xs, y in ys]
+	Vs = [V1(ix, iy, length(xs), length(ys)) for ix in 1:length(xs), iy in 1:length(ys)]
 	contour!(ax, xs, ys, Vs; color=:white, levels=1:1)
 	
 	fig
@@ -341,6 +493,7 @@ end
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 KrylovKit = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -348,6 +501,7 @@ PlutoTest = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
+FFTW = "~1.8.0"
 GLMakie = "~0.10.3"
 KrylovKit = "~0.8.1"
 PlutoTest = "~0.2.2"
@@ -360,7 +514,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "3e76eb8f10bd0cb493025ff8c2a5c6e0894d9750"
+project_hash = "bddd712b8ff342efa0c1fa72ea52620914b87c21"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1871,24 +2025,28 @@ version = "3.5.0+0"
 # ╠═52aaf95c-818a-495b-86c3-d1cc73f60033
 # ╠═edbc5861-96b0-4d29-b158-f60f82c77f37
 # ╠═896a6291-0027-4849-85cf-43e05082e5a8
+# ╠═271148a8-5410-46b9-a743-46bb18199b3d
 # ╟─bec6b558-b794-4d7e-9dd0-fba13a4b5c61
 # ╠═51954bdb-3cd7-428e-a7ad-7a02be2f06b4
 # ╠═504fa869-0faa-4f0c-943a-94dd1b57757b
+# ╠═f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
 # ╠═e6a95c73-cc53-4323-a033-afb10b5511c3
-# ╠═44773e3c-37e1-4c1f-a859-c20943edd5f2
 # ╠═989bbaf8-f3e1-4c0e-941b-25480bbcb272
-# ╟─61883ba0-0da8-43ec-9f3a-e5f6367492f3
+# ╟─92e91200-3b8a-4dab-9b3a-49850250042b
 # ╠═e4abdbe5-9da6-4454-9817-d97cbc471c93
+# ╠═f8a3d038-07ea-456a-9b57-b1332352bd5d
+# ╠═97dbb2a4-d43f-4401-a167-8862837c196f
+# ╠═b4c72de8-92f9-4da6-91c8-0083ca524939
+# ╟─61883ba0-0da8-43ec-9f3a-e5f6367492f3
 # ╠═9e7c66f3-a2f2-4470-bd7b-651963a8ad77
 # ╠═c23f8ec1-694a-473e-8486-f854aaadcc62
 # ╠═a548bf6d-02fa-4fed-97a3-ba48e35f6f7f
-# ╠═f6116b00-3e5c-4fde-a7fa-2b7444c66fa3
-# ╠═97dbb2a4-d43f-4401-a167-8862837c196f
-# ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
 # ╠═50bf1130-d60d-40d4-aea0-024af72a69bd
 # ╠═7af30430-cacc-4956-919c-d5707ec0cbf1
 # ╠═98600be8-5246-41b6-8100-b221e76ee818
 # ╠═fa349d2c-4db0-4293-a956-91d9cbe686b4
+# ╠═f3ed8512-bd49-4b7c-bd97-d5316a0fa9a5
+# ╠═44773e3c-37e1-4c1f-a859-c20943edd5f2
 # ╠═2dc5d157-0e41-42d8-9462-4c3dfe67ac4e
 # ╠═5133587f-265a-40a7-8d5d-08d28ccab7a7
 # ╠═78553187-2839-4afd-b2aa-f500a2a87b20
@@ -1896,19 +2054,41 @@ version = "3.5.0+0"
 # ╠═5e6fb2f7-ba1c-4872-b0ca-a0f120d6eaed
 # ╠═65f5fdfd-ef28-4dc0-b20b-d73c7e34b0fd
 # ╠═4a41cf38-7259-4316-be29-703ea0e3101a
-# ╟─a1c8fa54-57d4-4ae1-b775-8522b8c2090d
-# ╠═b9ea4c05-5018-4421-b43b-c1bf43ecee32
-# ╠═c3cb2999-66af-4e6f-afa7-ac19d844dce6
+# ╟─ae470b2b-ad8d-4bf9-bb11-45c8bdf305e6
+# ╠═f6642628-07a6-4497-ada6-5dba803e5452
+# ╠═7219e9ac-7e0f-4ffa-b573-9f9c7cc13c5f
+# ╠═5601e947-849d-4cf7-bb89-09bbd0572bdf
+# ╠═1a0131cd-a929-4ea4-8b37-8c5235f1e9fc
+# ╠═034717f1-e750-40a5-b0d2-020131006dfd
+# ╠═066e849c-6ab6-4f35-8b3f-4a83c06785c2
+# ╠═ef9d6e00-2bb1-4cd9-81b4-af0b3180e0df
+# ╠═f91b432b-2e48-4f7d-b39d-77384cbe5862
+# ╠═9c04d663-f168-4b61-b933-cc6232fb3b7f
+# ╠═d1589bf3-2550-413e-b591-6fe5ffe82dc3
+# ╠═5296126b-50a6-4438-99f7-2ffb936e4273
+# ╠═e227da11-1d91-40a8-9c3f-1cc3f4af3b34
+# ╠═ebec0708-62bc-4763-9c08-59badd5f463f
+# ╠═e007671b-2374-43fb-9afb-d7abf4510d2d
+# ╠═2b3cd93a-6e7f-4c26-9870-824818a78978
+# ╠═64da27e9-c766-41c4-90b7-22a4aac9582d
+# ╠═9d84d9e7-7479-49e0-9f15-4e37433bebc0
+# ╠═58d6ef16-93cf-4187-b115-e397c2e93030
+# ╠═1186c60c-cacb-421f-9cbb-0eb34a88d2a0
+# ╠═ac133a1f-cd23-4b17-999e-2ab5c9346b24
+# ╠═5dde65d6-78f6-4c81-a576-94c349d43833
 # ╟─7449bbcb-88a8-46a0-8a84-a53a85f5d7b6
+# ╠═32b47ff3-0b24-49b2-a979-634e698a36cb
+# ╟─a636b9f6-1473-4c44-9390-5b4f34fb5ccb
 # ╠═c9f84b1e-49e5-4619-add9-b73c804333e0
 # ╠═397957ee-c671-4446-ab4e-1e500148c3bb
 # ╠═6e5ae6a4-a18c-48bf-85b9-9fe9144fe837
 # ╠═018941cf-7347-4d16-a950-d5b9acd78234
-# ╠═6f16d034-d59e-4719-bcad-b066be37f4f1
 # ╠═1948a0c2-59a6-41af-a2ba-443c06418a0f
+# ╠═04682028-0fd7-480d-8e65-2f91bdaadad9
 # ╠═ec673526-580d-488a-aaa3-7b9a686fd02a
 # ╠═97315f46-9e31-45d6-99e7-98cc43924b59
-# ╠═32b47ff3-0b24-49b2-a979-634e698a36cb
-# ╠═7c1aa6e2-6877-4f06-b86c-35c32b37c754
+# ╠═586510db-6621-40b4-adb9-255411c4c8a6
+# ╠═2248381d-477e-449d-a077-9fe5f0e3c19c
+# ╠═f241b951-7e1e-4e8b-a44b-b8b503434fdf
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
