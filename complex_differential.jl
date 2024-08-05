@@ -258,11 +258,9 @@ f(x) = sin(x)
 f(5)
 
 # ╔═╡ bab636c3-7d4e-4016-a933-8d84664ec69a
-# More complicated function, which tests the triangle inequality
+# Write a more complicated function, and then calculate the derivative for it numerically
 function test_triangle(x, y)
-	hypot = abs(x + y)
-	sides = abs(x) + abs(y)
-	return sides - hypot
+	return 0
 end
 
 # ╔═╡ 2481044a-88da-4c4f-b141-34a55b850eb8
