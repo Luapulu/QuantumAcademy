@@ -26,6 +26,9 @@ using LinearAlgebra
 # ╔═╡ cf486cbe-5501-43b1-b905-739a8832ebd5
 using PlutoTest
 
+# ╔═╡ f05c683a-82e6-45d3-8774-49b4af9c212b
+using Random
+
 # ╔═╡ d38ebcd4-e581-41a3-a741-a4412ebf1867
 md"
 ## The First Axiom: States are Vectors
@@ -36,6 +39,54 @@ We can represent the state of a quantum system as a vector of complex numbers. T
 # ╔═╡ 29bfbd20-b307-4ae6-a2b2-ad4c556c4479
 state = [1, 0]  # Read this as 1*up + 0*down 
 
+# ╔═╡ 9fe131cc-3138-4f5f-9501-9f2bdb6929ae
+md"Some useful tips and tricks below"
+
+# ╔═╡ 71f55d93-6f8e-4719-b777-ab1fba35b9f9
+for x in state  # loop over a vector
+	println(x)
+end
+
+# ╔═╡ 20228829-2a8e-4f1a-931f-ffd969206d45
+conj(3 + 5im)  # conjugate a complex number
+
+# ╔═╡ f5763203-b78a-453f-81cb-9accc5cdbece
+axes(state)  # get the range of indices into a vector or array
+
+# ╔═╡ 2689a600-e56a-4294-b389-5e753acbb6f6
+# get axis in first dimension and make into a vector with collect
+collect(axes(state, 1))
+
+# ╔═╡ c7b18d3e-236f-4b38-bec9-4987baaa85a0
+# Example
+for i in axes(state, 1)  # first axis (matrices have multiple axes)
+	println(state[i])
+end
+
+# ╔═╡ aaca44df-5a0e-44dc-a7da-7457afa561da
+# Square root of a number
+sqrt(5)
+
+# ╔═╡ 697f0f7e-f753-4b42-84f7-b1c6f5e0fffb
+abs2(3 + im)  # square absolute value
+
+# ╔═╡ 6fa73a8b-a82c-4a30-91bf-ffa6ef77dc9f
+md"Implement the following three functions and compare to the base implementations of `dot` and `norm`"
+
+# ╔═╡ c8602d92-88cd-4c98-b8c3-47575247e01a
+# Compute the scalar product between two vectors
+function overlap(v, w) 
+	
+end
+
+# ╔═╡ c65ae05c-fe55-4044-a2e3-3b53c6c5ed01
+# return true if v and w are orthogonal, false otherwise
+are_orthogonal(v, w) = false
+
+# ╔═╡ 6360bb27-c25f-45da-93ba-85d74e77b7e7
+# return norm of fector v
+getnorm(v) = 1
+
 # ╔═╡ 8e2bff72-577d-4069-a55d-33330e45ce73
 md"## The Second Axiom: Observables are Hermitian Matrices
 
@@ -44,6 +95,15 @@ An observable is a physical quantity that we can measure. Examples include the e
 
 # ╔═╡ 9bade9d9-2301-4f36-8809-344873f8630c
 σz = [1 0; 0 -1]
+
+# ╔═╡ a7774adb-ca28-48cb-a41f-92fc022f9269
+md"2 Hints:"
+
+# ╔═╡ 276ba0c2-41d4-462f-b70c-2041229cb5c1
+σz[1, 2]  # get elements of matrix like so
+
+# ╔═╡ 6d627ce6-12a6-4929-a980-20aa3c2e7a9d
+σz[1, 1:2]  # get first row
 
 # ╔═╡ 06a1f1ff-4710-4e28-a4e5-d22ac1f4425d
 md"Write a function to multiply a vector with a state. Compare results with the Base Julia method."
@@ -78,12 +138,6 @@ Numerically, we can compute the eigenvalues (`zvals`) and eigenvectors (`zvecs`)
 # ╔═╡ 63dbb47c-022b-468a-be97-7b2e01c7cffd
 zvals, zvecs = eigen(σz)
 
-# ╔═╡ c8602d92-88cd-4c98-b8c3-47575247e01a
-# Compute the scalar product between two vectors
-function overlap(v, w) 
-	
-end
-
 # ╔═╡ 083fa312-0b13-47ef-8ccc-955b52a2ac82
 md"Now implement a generic measurement on a state. It should randomly return different results, so you'll need random numbers."
 
@@ -95,9 +149,19 @@ random_number = rand()
 # What % of the time will this be true?
 random_number < 0.6
 
+# ╔═╡ 33ebb7a9-a6aa-4c53-8d95-a704aedb0ada
+md"As a warm up, use the base function `count` to eestimate how often `rand()` will return true"
+
 # ╔═╡ 7331fca3-7713-4e97-b442-14266d98b9c4
-function measure(observable, state)
-	1
+begin
+	function measure(rng::AbstractRNG, observable, state)
+		rand(rng)
+	end
+
+	# convenience so you don't have to explicitly pass an rng explicitly
+	function measure(observable, state)
+		measure(Random.default_rng(), observable, state)
+	end
 end
 
 # ╔═╡ effee59f-4fdb-4038-8190-d3d6aa08e116
@@ -123,7 +187,7 @@ md"Finally in this section, calculate the expected value (mean) of an observable
 
 # ╔═╡ e5160786-006e-4d6f-bc7a-7b62e8fe8da2
 function expectation(observable, state)
-
+	2  # wrong!
 end
 
 # ╔═╡ 1c875b09-74d8-431a-9fc0-e41f8c07d030
@@ -133,10 +197,24 @@ end
 @test expectation(σz, [1, 1]) == 0
 
 # ╔═╡ 69cb2496-d536-4687-9753-38fbbaeceab1
-# measure the observable n times and return the mean
-function montecarlo_expect(observable, state, n::Integer)
-	
+begin
+	# measure the observable n times and return the mean
+	function montecarlo_expect(rng::AbstractRNG, observable, state, n::Integer)
+		# some setup
+		for _ in 1:n
+			# some measuring
+		end
+		return rand(rng)  # return mean
+	end
+
+	function montecarlo_expect(observable, state, n::Integer)
+		montecarlo_expect(Random.default_rng(), observable, state, n)
+	end
 end
+
+# ╔═╡ 7a13bc3f-dbb5-45c2-89a4-fcf723b8a488
+# Should be right 99%+ of the time
+@test montecarlo_expect(σz, [1, 1], 1_000) ≈ expectation(σz, [1, 1]) atol=0.1
 
 # ╔═╡ c772a479-ffe1-4478-89ba-1edb829feb15
 md"### Optional Exercise: 3-level system
@@ -147,179 +225,124 @@ Imagine a system with angular momentum that can take on values of 0, -1 and +1. 
 # This is wrong.
 Sz = zeros(3, 3)
 
-# ╔═╡ 0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
-md"In order to verify that this is the case, we try performing many measurements, and count how often each result appears."
-
 # ╔═╡ 410fca9e-7fe9-4e76-a176-4c7d0ba13a78
 md"## Fourth Axiom of Quantum Mechanics: Time Evolution
 
-We now understand how to specify a system, what we can measure and how to predict outcomes of measurements. The last piece of the puzzle is the *Time Evolution*, which predicts what the future state of a system will be, given its current state.
+We now understand how to specify a system, what we can measure and how to predict outcomes of measurements. The last piece of the puzzle is how a state changes in time.
 
-In order to understand this, we need to introduce one more concept: The **Hamiltonian**. This is the operator corresponding to the total energy of the system. In our example we can imagine an external magnetic field which is applied to the spin. If the spin is aligned with the magnetic field, its energy is smaller, e.g. -2. If it is pointing in the opposite direction, its energy is increased to +2. We assume that the magnetic field points in the z-direction. The Hamiltonian of the system then is"
+In order to understand this, we need to introduce one more concept: The **Hamiltonian**. This is the operator corresponding to the total energy of the system. In our example we can imagine an external magnetic field which is applied to the spin. If the spin is aligned with the magnetic field, its energy is smaller, e.g. -2. If it is pointing in the opposite direction, its energy is increased to +2. We assume that the magnetic field points in the z-direction. The Hamiltonian of the system is then"
 
 # ╔═╡ a52afb60-37d0-4894-a162-0b22e55b6e5a
-Hamiltonian = [-2 0; 0 2]
+H2 = [-2 0; 0 2]
 
 # ╔═╡ 671cafb7-91fd-44fe-8404-736b960eb28a
-md"Note that the Hamiltonian $H$ and the σ_z operator have the same eigenstates (Check that this is true!). This means that measuring either also fixes the result for measuring the other.
+md"Note that the Hamiltonian $H$ and the `σz` matrix have the same eigenstates (Check that this is true!). This means that measuring either also fixes the result for measuring the other.
 
-**The Time evolution of a Quantum Mechanical system is given by the time evolution operator $U(t) = exp(iH ⋅ t/ħ)$.**"
+**The Time evolution of a Quantum Mechanical system is given by the time evolution operator $U(t) = exp(-iH ⋅ t/ħ)$.**"
 
 # ╔═╡ 5eb922d9-2ccd-4381-abf4-2d32a47fc83d
-function time_evolution_B_z(t)#Write the function which returns the time evolution operator U(t) for the Hamiltonian specified above. Assume ħ=1.
-	return cis(Float64[-2 0; 0 2]*t)
-end
+# Write a function which returns the time evolution operator U(t) for
+# a given Hamiltonian. Assume ħ=1. Hint: look up the `cis` function
+propagator(H, t) = Matrix(UniformScaling(1), size(H)...)  # This is wrong!
 
 # ╔═╡ a4ca4561-e485-4e94-8d0c-73b47fe43959
-time_evolution_B_z(40) * eigvecs(σ_x)[:,2]
+@test propagator(H2, 0.123) * [1, 0] ≈ cis(0.123*2) * [1, 0]
 
-# ╔═╡ fac5ebfa-65bb-44c7-86d0-7d0396c02a70
-md"Here we observe an important fact, which we did not focus on previously: The entries of the state-vectors may be complex. The time evolution corresponds to a rotation in the vectors space and the complex plane.
+# ╔═╡ 73cf2ee5-1833-4854-9790-4e083ab2f911
+md"Write a function which proagates an intial state using yesterday's step by step method and returns the final state. The function takes a final time, an intial state, a number of steps n and a Hamiltonian H."
 
-How do the entries of the vectors change as the time evolution progresses?
-
-What happens if we use a magnetic field in x-direction?"
-
-# ╔═╡ 17fa590a-d77e-4d8c-9dd8-5ecfa29fbc41
-function time_evolution_B_x(t)#Write the function which returns the time evolution operator U(t) for a B-field in the x-direction, analog to the one in z-direction specified above. Assume ħ=1.
-	return cis(ComplexF64[0 2; 2 0]*t)
+# ╔═╡ 0b51079d-e160-4a62-85ea-67d55a062ec9
+function integrate(H, t, init, n)
+	# some setup maybe ?
+	for _ in 1:n
+		# update state to (1 - im * dt * H) * state
+	end
+	return nothing # return final state
 end
 
 # ╔═╡ 5b8f576d-76ab-407d-8d26-d7abfe2f0cac
 md"In order to gain further intuition for the behaviour of states as the time evolution is applied, we turn to visualization. Since the full state including complex phases depends on 4 numbers it is difficult to imagine for us. However, a global complex phase, which is applied to the entire state $e^{i\phi} \Psi$, does not change the outcomes of measurements, so we can ignore it. All that remains is the relative complex phase between the entries, and the real magnitude of each entry of the vector.
 
-Show that a global complex phase does not change the outcome of measurements!"
-
-# ╔═╡ 592fafe8-ec65-486c-a541-f38da30d2dd2
-if probability(eigvecs(σ_x)[:,2], [0,1]) == probability(eigvecs(σ_x)[:,2]*cis(3), [0,1])
-	print("Global phases don't matter")
-else
-	print("Global phases do matter")
-end
-
-# ╔═╡ 460c778d-969c-4234-9e65-ef8f1bb3557f
-md"The outcome of a measurement is only dependent on the overlap of the eigenstates with the current state. This overlap is not changed by a global complex phase.
+Exercise: Show that a global complex phase does not change the outcome of measurements.
 
 We can further reduce the dimensionality of the problem by noting that the normalisation to length 1 of the vector removes one more degree of freedom. Therefore, only two numbers are sufficient to characterize the state: 
  - The complex phase between the states
- - How much the state points in the z-direction"
+ - How much the state points in the z-direction
+
+Below, we plot the inital state and trajectory in time on the bloch-sphere. Have a look at the [wikipedia article](https://en.wikipedia.org/wiki/Bloch_sphere) on the Bloch sphere to see what it represents.
+
+Try different initial states. Where on the sphere are the z-up and down states, the x-up and down states, and the y-up and down states? Try different Hamiltonians. How can you get a point to rotate down to the equator from the North pole? How can you rotate around the equator?
+"
 
 # ╔═╡ f6b42b7d-c614-4c95-a105-d7dced988825
-function parametrize_Bloch_sphere(state)
-	return [2*acos(abs(state[1])),angle(state[1]) - angle(state[2])]
+function to_angles(state)
+	v = normalize(state)
+	return (
+		2 * acos(abs(v[1])),
+		angle(v[1]) - angle(v[2])
+	)
 end
 
 # ╔═╡ f802e2f0-201e-490b-937c-82e25bb640e0
-function Bloch_point(state)
-	parameters = parametrize_Bloch_sphere(state)
-	return Float64[sin(parameters[1])*cos(parameters[2]), sin(parameters[1])*sin(parameters[2]), cos(parameters[1])]
+# This function uses spherical coordinates
+# Ask us about them or look up spherical coordinates
+function to_sphere(state)
+	p = to_angles(state)
+	return (
+		sin(p[1])*cos(p[2]),
+		sin(p[1])*sin(p[2]),
+		cos(p[1])
+	)
 end
 
 # ╔═╡ 70539c8d-7565-4554-b60e-22220151b38b
-time_range = 0:0.1:100
+times = 0:0.1:100
 
 # ╔═╡ f0716eed-8be2-4031-9345-c28386fc1412
-initial_state = [1,0]
+initial_state = [1, 0.5]
+
+# ╔═╡ 37c3aeef-83ea-4c9e-ae54-ad11f316e45a
+to_sphere(initial_state)
 
 # ╔═╡ 4a5aa91c-cd22-481c-9e99-bf24a1eaa092
-@bind time PlutoUI.Slider(time_range)
-
-# ╔═╡ a0c4484b-0869-427b-9885-de3072bc8fb4
-md"Because the point can be a bit difficult to follow, we also plot the trace. Write the name of the function, which returns the time-evolution operator here:"
-
-# ╔═╡ a6269134-0ca9-464a-b05e-e4a17c1eac46
-time_evol = time_evolution_B_x
+@bind time PlutoUI.Slider(times)
 
 # ╔═╡ 67988f84-dc78-4c9d-bc6b-260fd36556a6
-time_evolved_state = time_evol(time)*initial_state
+evolved_state = propagator(H2, time)*initial_state
 
 # ╔═╡ 28728934-b4b5-4b58-b44a-2ea9c5f51f5b
-plotted_point = Bloch_point(time_evolved_state)
+plotted_point = to_sphere(evolved_state)
 
 # ╔═╡ ca85162f-4b9a-4d12-89f1-2126321e4071
-let # Define the sphere's radius and parameterize the surface using spherical coordinates
-radius = 1
-u = range(0, stop=2π, length=50)
-v = range(0, stop=π, length=50)
-x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
-y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
-z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
+let H = H2  # Change Hamiltonian here!
+	# Define the sphere's radius and parameterize the surface using spherical coordinates
+	radius = 1
+	u = range(0, stop=2π, length=50)
+	v = range(0, stop=π, length=50)
+	sxs = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
+	sys = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
+	szs = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
 
-plotted_points = zeros(Float64, (3,length(time_range)))
-
-for i in 1:length(time_range)
-	plotted_points[:,i] = Bloch_point(time_evol(time_range[i])*initial_state)
-end
+	pxs = Vector{Float32}(undef, length(times))
+	pys = Vector{Float32}(undef, length(times))
+	pzs = Vector{Float32}(undef, length(times))
 	
-# Plot the semi-transparent sphere
-fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
-
-lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
-
-scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
-# Display the figure
-fig
-end
-
-# ╔═╡ 4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
-md"Finally, we want to do the same thing for a general Hamiltonian, which may also be time dependant. For this we define a function Hamiltonian, which returns the matrix at any particular time."
-
-# ╔═╡ f0201489-9e3c-462e-8978-3c47ed7fa569
-function Hamiltonian_t(t)
-	return [sin(t) cos(t); cos(t) -2sin(t)]
-end
-
-# ╔═╡ 72d32760-3c54-406b-b59a-1d4a8f087488
-function Generic_Time_Evolution(time)#Write the function which returns the time evolution operator U(t) for a generic Hamiltonian. Assume ħ=1.
-	#We can't just copy the form for the time-indepenent energy, because for a time-dependent energy the time-evolution operator changes with time as well. 
-	#One way to numerically represent this, is to evolve in small steps. 
-	N = 10000 #Number of steps to divide the time evolution into 
-	U_t = cis(Hamiltonian_t(0)*0)
-	for i in 1:N
-		U_t = U_t * cis(Hamiltonian_t(i*time/N)*time/N)
+	for (i, t) in enumerate(times)
+		x, y, z = to_sphere(propagator(H, t) * initial_state)
+		pxs[i] = x
+		pys[i] = y
+		pzs[i] = z
 	end
-	return U_t
-end
-
-# ╔═╡ ba30cc54-cbe0-4814-99ad-44dd563619c0
-plotted_points = zeros(Float64, (3,length(time_range)))
-
-
-# ╔═╡ 1f515085-b4d5-4b75-b5c5-37b1bf51f9c7
-for i in 1:length(time_range)
-	plotted_points[:,i] = Bloch_point(Generic_Time_Evolution(time_range[i])*initial_state)
-end
-
-# ╔═╡ 7e2b7807-281b-4273-84f2-c5dd4954219c
-@bind time_2 PlutoUI.Slider(time_range)
-
-# ╔═╡ a2a5cc59-08d1-498b-a62e-2302c6041e4c
-let # Define the sphere's radius and parameterize the surface using spherical coordinates
-radius = 1
-u = range(0, stop=2π, length=50)
-v = range(0, stop=π, length=50)
-x = [radius * sin(v[j]) * cos(u[i]) for i in 1:length(u), j in 1:length(v)]
-y = [radius * sin(v[j]) * sin(u[i]) for i in 1:length(u), j in 1:length(v)]
-z = [radius * cos(v[j]) for i in 1:length(u), j in 1:length(v)]
-
-indexred = Int(time_2*10 + 1)
-
+		
+	# Plot the semi-transparent sphere
+	fig, ax, plot = surface(sxs, sys, szs, color=:blue, transparency=true, alpha=0.3)
 	
-# Plot the semi-transparent sphere
-fig, ax, plot = surface(x, y, z, color=:blue, transparency=true, alpha=0.3)
+	lines!(ax, pxs, pys, pzs)
 
-lines!(ax, plotted_points[1,:], plotted_points[2,:], plotted_points[3,:])
+	scatter!(ax, [plotted_point[1]], [plotted_point[2]], [plotted_point[3]], color = :red)
 
-scatter!(ax, [plotted_points[1,indexred]], [plotted_points[2,indexred]], [plotted_points[3,indexred]], color = :red)
-
-# Display the figure
-fig
+	fig
 end
-
-# ╔═╡ 547c87cc-63bc-43ad-821b-f6103f35f599
-md"What is the qualitative difference between a time-dependent and a non-time-dependent Hamiltonian? Why do you think these differences exist?
-
-Try to find patterns behind the movement of the state accross the Bloch sphere for different Hamiltonians!"
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -328,6 +351,7 @@ GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 PlutoTest = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
 [compat]
 GLMakie = "~0.10.3"
@@ -341,7 +365,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "2150ba58ec2a435dce35f910e117d0ff7e71b84f"
+project_hash = "7a47ef192f678e43d9ce85916935c93611abcaee"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1826,10 +1850,26 @@ version = "3.5.0+0"
 # ╠═17fcdcf0-67d2-41ba-89ca-e8427e829b2f
 # ╠═e7000762-01f1-41fc-9847-9da1b4c642fe
 # ╠═cf486cbe-5501-43b1-b905-739a8832ebd5
+# ╠═f05c683a-82e6-45d3-8774-49b4af9c212b
 # ╟─d38ebcd4-e581-41a3-a741-a4412ebf1867
 # ╠═29bfbd20-b307-4ae6-a2b2-ad4c556c4479
+# ╟─9fe131cc-3138-4f5f-9501-9f2bdb6929ae
+# ╠═71f55d93-6f8e-4719-b777-ab1fba35b9f9
+# ╠═20228829-2a8e-4f1a-931f-ffd969206d45
+# ╠═f5763203-b78a-453f-81cb-9accc5cdbece
+# ╠═2689a600-e56a-4294-b389-5e753acbb6f6
+# ╠═c7b18d3e-236f-4b38-bec9-4987baaa85a0
+# ╠═aaca44df-5a0e-44dc-a7da-7457afa561da
+# ╠═697f0f7e-f753-4b42-84f7-b1c6f5e0fffb
+# ╟─6fa73a8b-a82c-4a30-91bf-ffa6ef77dc9f
+# ╠═c8602d92-88cd-4c98-b8c3-47575247e01a
+# ╠═c65ae05c-fe55-4044-a2e3-3b53c6c5ed01
+# ╠═6360bb27-c25f-45da-93ba-85d74e77b7e7
 # ╟─8e2bff72-577d-4069-a55d-33330e45ce73
 # ╠═9bade9d9-2301-4f36-8809-344873f8630c
+# ╟─a7774adb-ca28-48cb-a41f-92fc022f9269
+# ╠═276ba0c2-41d4-462f-b70c-2041229cb5c1
+# ╠═6d627ce6-12a6-4929-a980-20aa3c2e7a9d
 # ╟─06a1f1ff-4710-4e28-a4e5-d22ac1f4425d
 # ╠═3ae4c71e-a9a3-4b85-a429-78a28233146f
 # ╠═eaeb7f60-6610-44c8-b7e3-8577978ab2cf
@@ -1837,10 +1877,10 @@ version = "3.5.0+0"
 # ╠═653e636b-5790-452c-83b2-194609bb42af
 # ╟─8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
 # ╠═63dbb47c-022b-468a-be97-7b2e01c7cffd
-# ╠═c8602d92-88cd-4c98-b8c3-47575247e01a
 # ╟─083fa312-0b13-47ef-8ccc-955b52a2ac82
 # ╠═dddda618-5c6d-4f6f-b051-aaee3d16720a
 # ╠═091568ca-7ba8-4435-accf-9dc5ba956cab
+# ╟─33ebb7a9-a6aa-4c53-8d95-a704aedb0ada
 # ╠═7331fca3-7713-4e97-b442-14266d98b9c4
 # ╠═effee59f-4fdb-4038-8190-d3d6aa08e116
 # ╠═7f65d9db-c1d4-4ea6-85bf-6b95127f5ea8
@@ -1853,36 +1893,25 @@ version = "3.5.0+0"
 # ╠═1c875b09-74d8-431a-9fc0-e41f8c07d030
 # ╠═bf8bffe0-5408-4209-889b-ebc540dc162d
 # ╠═69cb2496-d536-4687-9753-38fbbaeceab1
+# ╠═7a13bc3f-dbb5-45c2-89a4-fcf723b8a488
 # ╟─c772a479-ffe1-4478-89ba-1edb829feb15
 # ╠═59e3a5b5-01b1-4a97-bad8-527f1f296d61
-# ╟─0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
 # ╟─410fca9e-7fe9-4e76-a176-4c7d0ba13a78
 # ╠═a52afb60-37d0-4894-a162-0b22e55b6e5a
 # ╟─671cafb7-91fd-44fe-8404-736b960eb28a
 # ╠═5eb922d9-2ccd-4381-abf4-2d32a47fc83d
 # ╠═a4ca4561-e485-4e94-8d0c-73b47fe43959
-# ╠═fac5ebfa-65bb-44c7-86d0-7d0396c02a70
-# ╠═17fa590a-d77e-4d8c-9dd8-5ecfa29fbc41
+# ╟─73cf2ee5-1833-4854-9790-4e083ab2f911
+# ╠═0b51079d-e160-4a62-85ea-67d55a062ec9
 # ╟─5b8f576d-76ab-407d-8d26-d7abfe2f0cac
-# ╠═592fafe8-ec65-486c-a541-f38da30d2dd2
-# ╟─460c778d-969c-4234-9e65-ef8f1bb3557f
 # ╠═f6b42b7d-c614-4c95-a105-d7dced988825
 # ╠═f802e2f0-201e-490b-937c-82e25bb640e0
 # ╠═70539c8d-7565-4554-b60e-22220151b38b
 # ╠═f0716eed-8be2-4031-9345-c28386fc1412
+# ╠═37c3aeef-83ea-4c9e-ae54-ad11f316e45a
 # ╠═4a5aa91c-cd22-481c-9e99-bf24a1eaa092
-# ╟─a0c4484b-0869-427b-9885-de3072bc8fb4
-# ╠═a6269134-0ca9-464a-b05e-e4a17c1eac46
 # ╠═67988f84-dc78-4c9d-bc6b-260fd36556a6
 # ╠═28728934-b4b5-4b58-b44a-2ea9c5f51f5b
-# ╟─ca85162f-4b9a-4d12-89f1-2126321e4071
-# ╠═4b1d02a0-7a85-40fc-8b8d-b8c753a68dc2
-# ╠═f0201489-9e3c-462e-8978-3c47ed7fa569
-# ╠═72d32760-3c54-406b-b59a-1d4a8f087488
-# ╠═ba30cc54-cbe0-4814-99ad-44dd563619c0
-# ╠═1f515085-b4d5-4b75-b5c5-37b1bf51f9c7
-# ╠═7e2b7807-281b-4273-84f2-c5dd4954219c
-# ╠═a2a5cc59-08d1-498b-a62e-2302c6041e4c
-# ╟─547c87cc-63bc-43ad-821b-f6103f35f599
+# ╠═ca85162f-4b9a-4d12-89f1-2126321e4071
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
