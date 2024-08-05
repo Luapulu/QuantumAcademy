@@ -4,34 +4,23 @@
 
 <\body>
   <doc-data|<doc-title|Day 2: Basics of Quantum
-  Mechanics>|<doc-author|<author-data>>>
-
-  <section|Basics of physics>
-
-  System: Whatever we're looking at, for example a single electron in a box
-
-  State: The system is parametrized by one more more variables, such as
-  position of the electron in the box. The state of the system is then given
-  by the values of all such variables
-
-  Observeables: Properties of a system which can be measured (observed).
-  Examples include the momentum <math|<with|font-series|bold|p>>, the Energy
-  <math|E>, position <math|<with|font-series|bold|x>> and the spin
-  <math|\<sigma\>>.\ 
-
-  \;
+  Mechanics>|<doc-author|<author-data|<author-name|Philip Schwinghammer and
+  Paul Nemec>>>|<doc-author|<author-data>>>
 
   <section|Axioms of Quantum Mechanics>
 
   <subsection|States are Vectors>
 
-  We can represent the state of a quantum system as a vector of complex
-  numbers. The space of all possible such vectors is called a
-  <with|font-shape|italic|Hilbert space>, and is denoted by <math|\<cal-H\>>.
-  The simplest example is a single spin, which can either point up or down.
-  Since there are two possible states, the vector describing the system has
-  two entries, which we will call \Pup\Q or
-  <math|\<sigma\>=<around*|\||+|\<rangle\>>> and down or
+  We can represent the state of a quantum system (the system is whatever
+  we're looking at, for example a single electron in a box) as a vector of
+  complex numbers. The system is parametrized by one or more variables, such
+  as position of the electron in the box. The state of the system is then
+  given by the values of all such variables. The space of all possible such
+  vectors is called a <with|font-shape|italic|Hilbert space>, and is denoted
+  by <math|\<cal-H\>>. The simplest example is a single spin
+  <math|\<sigma\>>, which can either point up or down. Since there are two
+  possible states, the vector describing the system has two entries, which we
+  will call \Pup\Q <math|\<sigma\>=<around*|\||+|\<rangle\>>> and down
   <math|\<sigma\>=<around*|\||-|\<rangle\>>>.\ 
 
   It is convenient to represent vectors in the same way you may know from
@@ -160,9 +149,12 @@
 
   <section|Observables as Hermitian Matrices>
 
-  In Quantum mechanics the observables are defined through Hermitian
-  matrices. Matrices in general can be thought of as defining linear
-  transformation. They can be written as\ 
+  Observables are properties of a system which can be measured (observed).
+  Examples include the momentum <math|<with|font-series|bold|p>>, the Energy
+  <math|E>, position <math|<with|font-series|bold|x>> and the spin
+  <math|\<sigma\>>. In Quantum mechanics the observables are defined through
+  Hermitian matrices. Matrices in general can be thought of as defining
+  linear transformation. They can be written as\ 
 
   <\equation*>
     A=<matrix|<tformat|<table|<row|<cell|a<rsub|11>>|<cell|a<rsub|12>>>|<row|<cell|a<rsub|21>>|<cell|a<rsub|22>>>>>>
@@ -176,7 +168,7 @@
   The product of a matrix and a vector is defined as
 
   <\equation*>
-    A<around*|\||v|\<rangle\>>=<big|sum><rsub|i,j=1><rsup|N>a<rsub|i,j>\<cdot\>v<rsub|j><rsub|>
+    A<around*|\||v|\<rangle\>>=<big|sum><rsub|j=1><rsup|N>a<rsub|i,j>\<cdot\>v<rsub|j><rsub|>
   </equation*>
 
   This means each entry from the first row of the matrix is multiplied by the
@@ -281,7 +273,9 @@
   Imagine you know the state of the system at time <math|t=0>, e.g. a spin
   which is in the state <math|<around*|\||+|\<rangle\>>>. What state will it
   be in time <math|t=1s>? or <math|t=2s>? This is determined by the time
-  evolution: How the states changes over time.\ 
+  evolution: How the state changes over time. (In the Julia notebook, you
+  will calculate the time evolution for a spin state such as
+  <math|<around*|\||+|\<rangle\>>>.)
 
   In quantum systems, the time dependent state
   <math|<around*|\||\<Psi\><around*|(|t|)>|\<rangle\>>> is described by the
@@ -299,8 +293,8 @@
   already know how to solve this kind of equation for real or complex number
   <math|H>, and it turns out that a matrix is not so different.\ 
 
-  Deriving the solution of the Schrödinger equation is left as an exercise to
-  the reader, but analogous to yesterday we write it as
+  Deriving the solution of the time-dependent Schrödinger equation is left as
+  an exercise to the reader, but analogous to yesterday we write it as
 
   <\equation*>
     <around*|\||\<Psi\><around*|(|t|)>|\<rangle\>>=exp<around*|(|<frac|-i\<cdot\>
@@ -319,12 +313,12 @@
     <around*|(|A\<cdot\>B|)><rsub|i,j>=<big|sum><rsub|k>a<rsub|i,k>\<cdot\>b<rsub|k,j>
   </equation*>
 
-  Imagining this in the notation with rows and collumns, the first row of the
-  first matrix is multiplied element-wise with the first collumns of the
+  Imagining this in the notation with rows and columns, the first row of the
+  first matrix is multiplied element-wise with the first columns of the
   second matrix; This is the first entry of the new matrix. The one goes
-  through all combinations of rows and collumns to get the further entries,
-  so the second row multiplied with the third column is the element with
-  indices (2,3) of the new matrix.\ 
+  through all combinations of rows and columns to get the further entries, so
+  the second row multiplied with the third column is the element with indices
+  (2,3) of the new matrix.\ 
 
   <\equation*>
     A\<cdot\>B=<matrix|<tformat|<table|<row|<cell|a<rsub|11>>|<cell|a<rsub|12>>>|<row|<cell|a<rsub|21>>|<cell|a<rsub|22>>>>>><matrix|<tformat|<table|<row|<cell|b<rsub|11>>|<cell|b<rsub|12>>>|<row|<cell|b<rsub|21>>|<cell|b<rsub|22>>>>>>=<matrix|<tformat|<table|<row|<cell|a<rsub|11>*b<rsub|11>+a<rsub|12>*b<rsub|21>>|<cell|a<rsub|11>*b<rsub|12>+a<rsub|12>*b<rsub|22>>>|<row|<cell|a<rsub|21>*b<rsub|11>+a<rsub|21>*b<rsub|21>>|<cell|a<rsub|21>*b<rsub|12>+a<rsub|22>*b<rsub|22>>>>>>
@@ -364,17 +358,17 @@
 <\references>
   <\collection>
     <associate|auto-1|<tuple|1|1>>
-    <associate|auto-10|<tuple|3.2|?>>
-    <associate|auto-11|<tuple|4|?>>
-    <associate|auto-12|<tuple|5|?>>
-    <associate|auto-2|<tuple|2|1>>
-    <associate|auto-3|<tuple|2.1|1>>
-    <associate|auto-4|<tuple|2.1.1|2>>
-    <associate|auto-5|<tuple|2.1.2|2>>
-    <associate|auto-6|<tuple|2.1.3|2>>
-    <associate|auto-7|<tuple|2.1.4|2>>
-    <associate|auto-8|<tuple|3|2>>
-    <associate|auto-9|<tuple|3.1|?>>
+    <associate|auto-10|<tuple|3|3>>
+    <associate|auto-11|<tuple|4|4>>
+    <associate|auto-12|<tuple|5|4>>
+    <associate|auto-2|<tuple|1.1|1>>
+    <associate|auto-3|<tuple|1.1.1|1>>
+    <associate|auto-4|<tuple|1.1.2|2>>
+    <associate|auto-5|<tuple|1.1.3|2>>
+    <associate|auto-6|<tuple|1.1.4|2>>
+    <associate|auto-7|<tuple|2|2>>
+    <associate|auto-8|<tuple|2.1|3>>
+    <associate|auto-9|<tuple|2.2|3>>
   </collection>
 </references>
 
@@ -412,6 +406,22 @@
       <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|3<space|2spc>Observables
       as Hermitian Matrices> <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
       <no-break><pageref|auto-8><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|3.1<space|2spc>Definition of Hermitian
+      Matrices <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
+      <no-break><pageref|auto-9>>
+
+      <with|par-left|<quote|1tab>|3.2<space|2spc>Important properties
+      <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
+      <no-break><pageref|auto-10>>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|4<space|2spc>Measurements>
+      <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
+      <no-break><pageref|auto-11><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|5<space|2spc>The
+      Time Evolution> <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>>
+      <no-break><pageref|auto-12><vspace|0.5fn>
     </associate>
   </collection>
 </auxiliary>
