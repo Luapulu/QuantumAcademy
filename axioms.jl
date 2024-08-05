@@ -23,149 +23,132 @@ using PlutoUI
 # ╔═╡ e7000762-01f1-41fc-9847-9da1b4c642fe
 using LinearAlgebra
 
+# ╔═╡ cf486cbe-5501-43b1-b905-739a8832ebd5
+using PlutoTest
+
 # ╔═╡ d38ebcd4-e581-41a3-a741-a4412ebf1867
 md"
-# Axioms of Quantum Mechanics
+## The First Axiom: States are Vectors
 
-Quantum Mechanics is built on 4 axioms (assumptions). These are well-verified by experiment, and took scientists a long time to discover and understand. In this notebook, our goal is to 
-1. Learn what the 4 axioms of Quantum Mechanics are
-2. Understand what they mean
-3. Apply them to a simple model system: The Stern-Gerlach experiment
-
-## The first Axiom: States are vectors
-
-We can represent the state of a Quantum system as a vector in a Vectorspace. These vectors are always normalised, so they have length 1. One example of this is the state of a single spin, which can be visualized as an arrow pointing either up or down. 
+We can represent the state of a quantum system as a vector of complex numbers. The example below corresponds to a single spin, which can either point up or down after measurement. The vector below should be interpreted as `state[1] * up + state[2] * down`. A vector like `[1, 1]` would be a mix of both up and down.
 "
 
-
 # ╔═╡ 29bfbd20-b307-4ae6-a2b2-ad4c556c4479
-Spinstate = Float64[1,0]#We initialize a vector with two entries. The state [1,0] will correspond to spin up, and [0,1] to spin down. 
+state = [1, 0]  # Read this as 1*up + 0*down 
 
 # ╔═╡ 8e2bff72-577d-4069-a55d-33330e45ce73
-md"## The second Axiom: Observables are Hermitian Matrices
+md"## The Second Axiom: Observables are Hermitian Matrices
 
-An observeable is a physical quantity that we can measure. Examples include the energy, the momentum, the position and the spin of a particle. Each such observeable can be represented by a hermitian matrix, which acts on the state vector. In our example of looking at spin states, one example would be the spin of the particle along the z axis, i.e. whether the spin is pointing up (1) or down (-1). This is represented by the matrix:"
+An observable is a physical quantity that we can measure. Examples include the energy, the momentum, the position and the spin of a particle. Each observeable can be represented by a hermitian matrix, which acts on state vectors. For a spin, whether the spin points up or down is given by the matrix `σz` below.
+"
 
 # ╔═╡ 9bade9d9-2301-4f36-8809-344873f8630c
-σ_z = Float64[1 0; 0 -1]
+σz = [1 0; 0 -1]
+
+# ╔═╡ 06a1f1ff-4710-4e28-a4e5-d22ac1f4425d
+md"Write a function to multiply a vector with a state. Compare results with the Base Julia method."
+
+# ╔═╡ 3ae4c71e-a9a3-4b85-a429-78a28233146f
+# multiply A with x and write the result into y
+function mymul!(y, A, x)
+	y
+end
+
+# ╔═╡ eaeb7f60-6610-44c8-b7e3-8577978ab2cf
+# similar(x) creates a new vector like or similar to x but with undefined values
+# As always, try it out and have a look at the docs to look up things like this.
+mymul(A, x) = mymul!(similar(x), A, x)
+
+# ╔═╡ 9b7d55ba-be68-4695-885b-0007b1d0a168
+@test mymul(σz, [1, 0]) ≈ [1, 0]
 
 # ╔═╡ 653e636b-5790-452c-83b2-194609bb42af
-σ_z * Spinstate #Applying the spin-operator to the spin-state returns the same state. Try changing the spin state to [0,1]!
+# Applying σz to the spin-state returns the same state.
+# Try changing the spin state to [0,1]
+σz * state
 
-# ╔═╡ ba383896-1d2a-43a0-851b-4114891645be
-md"The number that the state is multiplied by when the operator is applied is called an eigenvalue. What are the eigenvalues of $σ_z$? What happens when you apply the operator to a state that is not [1,0] or [0,1]?"
+# ╔═╡ 8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
+md"## The Third Axiom: Measurements
 
-# ╔═╡ 2af78c44-2d26-486d-beb4-e6f1c425b393
-md"We can imagine other matrices acting on the spin-state. These correspond to the spin in x-direction and y direction. The matrices are:"
+The measurement of an observeable will always return one of the eigenvalues of the hermitian matrix, with a probability given by the squared norm of the scalar product of the state with the corresponding eigenstate of the system. After the measurement, the state of the system will be the eigenstate belonging to the eigenvalue that was returned by the measurement. The probability of obtaining any given eigenvalue-eigenvector pair is given by the normalised scalar product between the pre-measurement state and the eigenvector of interest.
 
-# ╔═╡ d8cc41e8-fe7b-43e7-8123-359eb32c7380
-σ_x = Float64[0 1; 1 0]
-
-# ╔═╡ e8cd222b-97f7-42d6-834b-c80621a76a2f
-σ_y = ComplexF64[0 -im; im 0]
-
-# ╔═╡ eb131edf-0d88-45ad-b72d-b887453838f1
-md"Try what happens when you apply these matrices to the spin states [1,0] and [0,1]! 
-
-This is because [1,0] and [0,1] are eigenstates of $σ_z$, but not of $σ_x$ or $σ_y$. The operator $σ_z$ asks the question: Is the spin up (returns 1 times the vector) or is it down (returns -1 times the vector). $σ_x$ and $σ_y$ ask whether the spin points forward or backward, and left or right respectively. So when given a vector pointing up or down, they don't give a simple answer. 
-
-Which vectors are eigenstates of $σ_x$ and $σ_y$?"
+Numerically, we can compute the eigenvalues (`zvals`) and eigenvectors (`zvecs`) as below. As an exercise, write your own function to calculate the scalar product or overlap between two states. Compare with the [`dot`](https://docs.julialang.org/en/v1/stdlib/LinearAlgebra/#LinearAlgebra.dot) function from LinearAlgebra.
+"
 
 # ╔═╡ 63dbb47c-022b-468a-be97-7b2e01c7cffd
-eigvecs(σ_x)
+zvals, zvecs = eigen(σz)
 
-# ╔═╡ 456082fa-42b6-4776-9788-55c2c0547025
-md"To convince ourselves, that these are truly the eigenvectors of $σ_x$ we see what happens when we apply $σ_x$:"
+# ╔═╡ c8602d92-88cd-4c98-b8c3-47575247e01a
+# Compute the scalar product between two vectors
+function overlap(v, w) 
+	
+end
 
-# ╔═╡ ec6e42ea-bb49-4d5d-85b2-066855618e08
-σ_x * eigvecs(σ_x)[:,2]#Here we apply σ_x to the second eigenvector. Try what happens when you swap σ_x for σ_y and try the different eigenstates. 
+# ╔═╡ 083fa312-0b13-47ef-8ccc-955b52a2ac82
+md"Now implement a generic measurement on a state. It should randomly return different results, so you'll need random numbers."
 
-# ╔═╡ 89c52494-8f14-41a8-8211-6ecb591b682a
-md"What are the eigenvalues of $σ_x$ and $σ_y$?"
+# ╔═╡ dddda618-5c6d-4f6f-b051-aaee3d16720a
+# A uniformly distributed number between 0 and 1
+random_number = rand()
 
-# ╔═╡ ec85de5e-8e33-4bde-8634-3c1e201127d9
-eigvals(σ_z)
+# ╔═╡ 091568ca-7ba8-4435-accf-9dc5ba956cab
+# What % of the time will this be true?
+random_number < 0.6
+
+# ╔═╡ 7331fca3-7713-4e97-b442-14266d98b9c4
+function measure(observable, state)
+	1
+end
+
+# ╔═╡ effee59f-4fdb-4038-8190-d3d6aa08e116
+@test measure(σz, [1, 0]) == 1
+
+# ╔═╡ 7f65d9db-c1d4-4ea6-85bf-6b95127f5ea8
+@test measure(σz, [0, 1]) == -1
+
+# ╔═╡ ceaa9e4c-7abc-4245-9465-9fe2f0e2559e
+md"A spin can also point in the x and y directions. The following matrices correspond to those observables. Which vectors are eigenstates of $σ_x$ and $σ_y$? What would happen if you apply an x-measurement to a z-up state? What if you measure spin in the z direction, get +1 as a result, then measure in the y-direction and then again in the z-direction? Will you get the same +1 at the end?"
+
+# ╔═╡ d8cc41e8-fe7b-43e7-8123-359eb32c7380
+σx = [0 1; 1 0]
+
+# ╔═╡ e8cd222b-97f7-42d6-834b-c80621a76a2f
+σy = [0 -im; im 0]
+
+# ╔═╡ 624fb42a-56c4-40aa-96ca-6e50be4ab529
+md"What is the probability of obtaining an up state after measuring down in the same direction?"
+
+# ╔═╡ 406976c2-4049-4603-8774-221fc14e8a42
+md"Finally in this section, calculate the expected value (mean) of an observable in a given state. Write a function to simulate many measurements and compare the result to your first function."
+
+# ╔═╡ e5160786-006e-4d6f-bc7a-7b62e8fe8da2
+function expectation(observable, state)
+
+end
+
+# ╔═╡ 1c875b09-74d8-431a-9fc0-e41f8c07d030
+@test expectation(σz, [1, 0]) == 1
+
+# ╔═╡ bf8bffe0-5408-4209-889b-ebc540dc162d
+@test expectation(σz, [1, 1]) == 0
+
+# ╔═╡ 69cb2496-d536-4687-9753-38fbbaeceab1
+# measure the observable n times and return the mean
+function montecarlo_expect(observable, state, n::Integer)
+	
+end
 
 # ╔═╡ c772a479-ffe1-4478-89ba-1edb829feb15
 md"### Optional Exercise: 3-level system
 
-Imagine a system with a spin that can not just be up (1) or down (-1) but also neutral (0) along the z-axis. How would you write the eigenstates corresponding to these states, and which matrix would you use to represent the observeable of the spin along this axis?"
-
-# ╔═╡ 8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
-md"## The third axiom: Measurements
-
-Now that we have defined our state, and what we can measure for that state, the next question is what the result of a measurement will be. In the case of a spin-state [1, 0], if we measure the spin along the z-axis, we will of course get 1 as a result. Likewise, for [0,1], the result will be -1. 
-
-However, if we try to measure the spin along the x-axis, what will the result be?"
-
-# ╔═╡ f908f827-49a2-4433-b4d6-846aeb7ea355
-md"**The measurement of an observeable will ALWAYS return one of the eigenvalues of the operator, with a probability given by the squared norm of the scalar product of the state with the corresponding eigenstate of the system**"
+Imagine a system with angular momentum that can take on values of 0, -1 and +1. What would the corresponding z-measurement (`Sz`) look like?"
 
 # ╔═╡ 59e3a5b5-01b1-4a97-bad8-527f1f296d61
-dot(Float64[1,0], Float64[1,0]) #This calculates the scalar product of two vectors.
-
-# ╔═╡ c8602d92-88cd-4c98-b8c3-47575247e01a
-function probability(vec1, vec2)#Write a function which takes two vectors, and returns the squared norm of the scalar product. 
-	return norm(dot(vec1,vec2))^2 
-end
-
-# ╔═╡ 4fc67d42-cbaf-4be3-9bc3-3a855734857d
-probability([1,0], [0,1])#Test out what happens for different vectors.
-
-# ╔═╡ 6b6a2445-16dd-485c-985b-8edacfacfe4e
-md"**Once the measurement has been performed, the state of the system will be the eigenstate belonging to the eigenvalue that was returned by the measurement**"
-
-# ╔═╡ 7331fca3-7713-4e97-b442-14266d98b9c4
-function perform_measurement_Z(state)#This function takes a state and an operator, and simulates performing a measurement of the spin in z-direction. It returns the state after the measurement was performed. 
-	overlap = probability(state, [1,0])
-	if rand() > overlap
-		return [0,1]
-	else
-		return [1,0]
-	end
-end
-
-# ╔═╡ 1b109de1-5d4b-49b1-8c0b-61ab0ae2367d
-perform_measurement_Z(eigvecs(σ_x)[:,2])
-
-# ╔═╡ 2f4bd64a-737b-4478-89ff-84a5ff5ecac7
-md"We can see that, for example, when using the eigenvectors of the spin in x-direction, the chance of measuring either up or down is exactly one half. Therefore, on average, the outcome of the measurement will be 0. This average over many measurements is called the expectation value, and is calculated as the scalar product of the vector with itself after the operator was applied."
-
-# ╔═╡ 9a790930-9dc4-47a0-bf62-1ad65f68887d
-function expectation_value_Z(state)#Calculates the expectation value for measuring the spin along the z-axis for a given state
-	return dot(state, σ_z * state)
-end
-
-# ╔═╡ 6ea47032-81d9-483e-aaec-e20079fb8f22
-expectation_value_Z(eigvecs(σ_x)[:,2])
+# This is wrong.
+Sz = zeros(3, 3)
 
 # ╔═╡ 0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
 md"In order to verify that this is the case, we try performing many measurements, and count how often each result appears."
-
-# ╔═╡ 69cb2496-d536-4687-9753-38fbbaeceab1
-function perform_many_measurements(number_of_measurements, initial_state)
-	up = 0.0
-	down = 0.0
-	for i in number_of_measurements:-1:1
-		if expectation_value_Z(perform_measurement_Z(initial_state)) > 0
-			up += 1
-		else
-			down += 1
-		end
-	end
-	return [up/number_of_measurements, down/number_of_measurements]
-end
-
-# ╔═╡ 4cf45ffb-fa82-4311-8928-7ab53f005ae8
-measurements = perform_many_measurements(1, eigvecs(σ_x)[:,2])#What happens when you change the number of measurements or the initial state?
-
-# ╔═╡ 55a0a31d-b10b-4949-9e69-ad33d3aa2f06
-let f = Figure()
-Axis(f[1, 1])
-
-barplot!([1, -1], measurements, color = :red, strokecolor = :black, strokewidth = 1)
-
-f end
 
 # ╔═╡ 410fca9e-7fe9-4e76-a176-4c7d0ba13a78
 md"## Fourth Axiom of Quantum Mechanics: Time Evolution
@@ -343,10 +326,12 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+PlutoTest = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
 [compat]
 GLMakie = "~0.10.3"
+PlutoTest = "~0.2.2"
 PlutoUI = "~0.7.59"
 """
 
@@ -354,9 +339,9 @@ PlutoUI = "~0.7.59"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.3"
+julia_version = "1.10.4"
 manifest_format = "2.0"
-project_hash = "92795ba12cfb5c1cc04c9e63fabf524011234630"
+project_hash = "2150ba58ec2a435dce35f910e117d0ff7e71b84f"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1300,6 +1285,12 @@ git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
 version = "1.4.1"
 
+[[deps.PlutoTest]]
+deps = ["HypertextLiteral", "InteractiveUtils", "Markdown", "Test"]
+git-tree-sha1 = "17aa9b81106e661cffa1c4c36c17ee1c50a86eda"
+uuid = "cb4044da-4d16-4ffa-a6a3-8cad7f73ebdc"
+version = "0.2.2"
+
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
 git-tree-sha1 = "ab55ee1510ad2af0ff674dbcced5e94921f867a9"
@@ -1834,37 +1825,37 @@ version = "3.5.0+0"
 # ╠═53da5634-a69c-4285-ac26-314b5e696656
 # ╠═17fcdcf0-67d2-41ba-89ca-e8427e829b2f
 # ╠═e7000762-01f1-41fc-9847-9da1b4c642fe
+# ╠═cf486cbe-5501-43b1-b905-739a8832ebd5
 # ╟─d38ebcd4-e581-41a3-a741-a4412ebf1867
 # ╠═29bfbd20-b307-4ae6-a2b2-ad4c556c4479
 # ╟─8e2bff72-577d-4069-a55d-33330e45ce73
 # ╠═9bade9d9-2301-4f36-8809-344873f8630c
+# ╟─06a1f1ff-4710-4e28-a4e5-d22ac1f4425d
+# ╠═3ae4c71e-a9a3-4b85-a429-78a28233146f
+# ╠═eaeb7f60-6610-44c8-b7e3-8577978ab2cf
+# ╠═9b7d55ba-be68-4695-885b-0007b1d0a168
 # ╠═653e636b-5790-452c-83b2-194609bb42af
-# ╟─ba383896-1d2a-43a0-851b-4114891645be
-# ╟─2af78c44-2d26-486d-beb4-e6f1c425b393
+# ╟─8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
+# ╠═63dbb47c-022b-468a-be97-7b2e01c7cffd
+# ╠═c8602d92-88cd-4c98-b8c3-47575247e01a
+# ╟─083fa312-0b13-47ef-8ccc-955b52a2ac82
+# ╠═dddda618-5c6d-4f6f-b051-aaee3d16720a
+# ╠═091568ca-7ba8-4435-accf-9dc5ba956cab
+# ╠═7331fca3-7713-4e97-b442-14266d98b9c4
+# ╠═effee59f-4fdb-4038-8190-d3d6aa08e116
+# ╠═7f65d9db-c1d4-4ea6-85bf-6b95127f5ea8
+# ╟─ceaa9e4c-7abc-4245-9465-9fe2f0e2559e
 # ╠═d8cc41e8-fe7b-43e7-8123-359eb32c7380
 # ╠═e8cd222b-97f7-42d6-834b-c80621a76a2f
-# ╟─eb131edf-0d88-45ad-b72d-b887453838f1
-# ╠═63dbb47c-022b-468a-be97-7b2e01c7cffd
-# ╟─456082fa-42b6-4776-9788-55c2c0547025
-# ╠═ec6e42ea-bb49-4d5d-85b2-066855618e08
-# ╟─89c52494-8f14-41a8-8211-6ecb591b682a
-# ╠═ec85de5e-8e33-4bde-8634-3c1e201127d9
-# ╟─c772a479-ffe1-4478-89ba-1edb829feb15
-# ╟─8786c7c7-fc64-4f6d-bbb3-41a2d970cfc3
-# ╟─f908f827-49a2-4433-b4d6-846aeb7ea355
-# ╠═59e3a5b5-01b1-4a97-bad8-527f1f296d61
-# ╠═c8602d92-88cd-4c98-b8c3-47575247e01a
-# ╠═4fc67d42-cbaf-4be3-9bc3-3a855734857d
-# ╟─6b6a2445-16dd-485c-985b-8edacfacfe4e
-# ╠═7331fca3-7713-4e97-b442-14266d98b9c4
-# ╠═1b109de1-5d4b-49b1-8c0b-61ab0ae2367d
-# ╟─2f4bd64a-737b-4478-89ff-84a5ff5ecac7
-# ╠═9a790930-9dc4-47a0-bf62-1ad65f68887d
-# ╠═6ea47032-81d9-483e-aaec-e20079fb8f22
-# ╟─0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
+# ╟─624fb42a-56c4-40aa-96ca-6e50be4ab529
+# ╟─406976c2-4049-4603-8774-221fc14e8a42
+# ╠═e5160786-006e-4d6f-bc7a-7b62e8fe8da2
+# ╠═1c875b09-74d8-431a-9fc0-e41f8c07d030
+# ╠═bf8bffe0-5408-4209-889b-ebc540dc162d
 # ╠═69cb2496-d536-4687-9753-38fbbaeceab1
-# ╠═4cf45ffb-fa82-4311-8928-7ab53f005ae8
-# ╟─55a0a31d-b10b-4949-9e69-ad33d3aa2f06
+# ╟─c772a479-ffe1-4478-89ba-1edb829feb15
+# ╠═59e3a5b5-01b1-4a97-bad8-527f1f296d61
+# ╟─0ad39a40-ac6f-438e-bf13-b53b1f6d0a33
 # ╟─410fca9e-7fe9-4e76-a176-4c7d0ba13a78
 # ╠═a52afb60-37d0-4894-a162-0b22e55b6e5a
 # ╟─671cafb7-91fd-44fe-8404-736b960eb28a
