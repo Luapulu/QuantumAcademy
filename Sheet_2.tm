@@ -144,7 +144,7 @@
   </question>
 
   <\question>
-    Keep working through the notebook! Use this as a reference.
+    Keep working through the notebook!
   </question>
 
   <section|Observables as Hermitian Matrices>
@@ -161,9 +161,9 @@
   </equation*>
 
   in the case of a 2-dimensional vector space. For <math|N>-dimensional
-  vector-spaces we have <math|N\<times\>N> matrices. (In general, matrices
-  can also have different lengths and widths, e.g. <math|M\<times\>N>
-  matrices, but in quantum mechanics, all Matrices are square)
+  vector-spaces we have <math|NxN> matrices. (In general matrices can also
+  have different lengths and widths, e.g. <math|MxN> matrices, but in quantum
+  mechanics, all Matrices are square)
 
   The product of a matrix and a vector is defined as
 
@@ -173,8 +173,8 @@
 
   This means each entry from the first row of the matrix is multiplied by the
   corresponding entry of the vector. Their sum is the first entry of the new
-  vector. Then the same is repeated for the second, third, <text-dots>,
-  <math|n>-th row.\ 
+  vector. Then the same is repeated for the second, third, <text-dots>, Nth
+  row.\ 
 
   <subsection|Definition of Hermitian Matrices>
 
@@ -204,25 +204,25 @@
   In general, when we multiply a matrix with a vector, we get a completely
   different vector, that points in a different direction. However, there is a
   set of special vectors, the so-called eigenvectors. Each hermitian matrix
-  of size <math|N\<times\>N> has <math|N> unique eigenvectors.\ 
+  of size <math|NxN> has <math|N> unique eigenvectors.\ 
 
-  Multiplying an eigenvector <math|<around*|\||v<rsub|i>|\<rangle\>>> with
+  Multiplying an eigenvector <math|<around*|\||v<rsub|e>|\<rangle\>>> with
   the corresponding matrix <math|A> will return the same vector, scaled by a
-  number called the <with|font-shape|italic|eigenvalue> <math|a>.\ 
+  number called the <with|font-shape|italic|eigenvalue> <math|E>.\ 
 
   <\equation*>
-    A<around*|\||v<rsub|i>|\<rangle\>>=a<rsub|i><around*|\||v<rsub|i>|\<rangle\>>
+    A<around*|\||v<rsub|e>|\<rangle\>>=E<around*|\||v<rsub|e>|\<rangle\>>
   </equation*>
 
   The eigenvectors of a hermitian matrix are all orthogonal (not generally
   true for different matrices!) and therefore form a
   <with|font-shape|italic|basis> of the vectorspace <math|\<cal-H\>>. A basis
   is a collection of vectors <math|<around*|{|<around*|\||v<rsub|1>|\<rangle\>>,\<ldots\>,<around*|\||v<rsub|N>|\<rangle\>>|}>>,
-  such that any vector <math|<around*|\||w|\<rangle\>>> can be written as a
+  such that any vector <math|<around*|\||a|\<rangle\>>> can be written as a
   linear combination of them:
 
   <\equation*>
-    <around*|\||w|\<rangle\>>=<big|sum><rsub|i=1><rsup|N>c<rsub|i><around*|\||v<rsub|i>|\<rangle\>>
+    <around*|\||a|\<rangle\>>=<big|sum><rsub|i=1><rsup|N>c<rsub|i><around*|\||v<rsub|i>|\<rangle\>>
   </equation*>
 
   \;
@@ -241,22 +241,22 @@
   associated with that observeable. If the system is in a different state, it
   will <with|font-shape|italic|collapse> into one of the eigenstates (states
   which are eigenvectors). The outcome of the measurement (the measured
-  value) is the eigenvalue <math|a<rsub|i>> associated with the eigenstate
-  <math|<around*|\||v<rsub|i>|\<rangle\>>>.\ 
+  value) is the eigenvalue <math|E> associated with the eigenstate
+  <math|<around*|\||v<rsub|e>|\<rangle\>>>.\ 
 
   This is the so-called wavefunction collapse, which is the source of many
   philosphical debates about the true nature of quantum mechanics. For our
   purposes, its not that important to know about, but if your interested, you
-  can start here: <hlink|https://en.wikipedia.org/wiki/Wave_function_collapse|>
+  can start here: https://en.wikipedia.org/wiki/Wave_function_collapse
 
   The outcome of the measurement is determined probabilistically; The
-  probability <math|P> to measure any particular eigenvalue <math|a<rsub|i>>
-  of an eigenstate <math|<around*|\||v<rsub|i>|\<rangle\>>> is given by the
-  scalar product between the pre-measurement state
-  <math|<around*|\||\<psi\>|\<rangle\>>> and that eigenstate.\ 
+  probability <math|P> to measure any particular eigenvalue <math|E> of an
+  eigenstate <math|<around*|\||v<rsub|e>|\<rangle\>>> is given by the norm of
+  the scalar product between the pre-measurement state
+  <math|<around*|\||\<Psi\>|\<rangle\>>> and that eigenstate.\ 
 
   <\equation*>
-    P<around*|(|E|)>=<around*|\||<around*|\<langle\>|v<rsub|e><around*|\|||\<nobracket\>>\<psi\>|\<rangle\>>|\|><rsup|2>
+    P<around*|(|E|)>=<around*|\|||\|><around*|\<langle\>|v<rsub|e><around*|\|||\<nobracket\>>\<Psi\>|\<rangle\>>\|<around*|\|||\<nobracket\>><rsup|2>
   </equation*>
 
   <\question>
@@ -271,10 +271,10 @@
   say time evolution what we mean is this:\ 
 
   Imagine you know the state of the system at time <math|t=0>, e.g. a spin
-  which is in the state <math|<around*|\||+|\<rangle\>>>. What state will you
-  have at <math|t=1s>? or <math|t=2s>? This is determined by the time
-  evolution \V that is, how the state changes over time. (In the Julia
-  notebook, you will calculate the time evolution for a spin state such as
+  which is in the state <math|<around*|\||+|\<rangle\>>>. What state will it
+  be in time <math|t=1s>? or <math|t=2s>? This is determined by the time
+  evolution: How the state changes over time. (In the Julia notebook, you
+  will calculate the time evolution for a spin state such as
   <math|<around*|\||+|\<rangle\>>>.)
 
   In quantum systems, the time dependent state
@@ -289,9 +289,9 @@
 
   Here the left side is the derivative with respect to time, and the right
   hand-side is a matrix-multiplication of the matrix <math|H> and the state
-  <math|<around*|\||\<Psi\><around*|(|t|)>|\<rangle\>>>. After yesterday,
-  this equation will seam familiar for real or complex number <math|H>, and
-  it turns out that a matrix is not so different.\ 
+  <math|<around*|\||\<Psi\><around*|(|t|)>|\<rangle\>>>. After yesterday, we
+  already know how to solve this kind of equation for real or complex number
+  <math|H>, and it turns out that a matrix is not so different.\ 
 
   Deriving the solution of the time-dependent Schrödinger equation is left as
   an exercise to the reader, but analogous to yesterday we write it as
@@ -302,9 +302,12 @@
   </equation*>
 
   Here the exponential function exp when applied to a matrix is again a
-  matrix itself. You'll need to multiply matrices as follows. In the index
-  notation introduced earlier, multiplying two matrices <math|A> and <math|B>
-  takes this form:
+  matrix itself. The way to calculate it involves the Taylor expansion of the
+  exponential function, however, in order to understand this, you first need
+  to understand how to multiply matrices.\ 
+
+  In the index notation introduced earlier, multiplying two matrices <math|A>
+  and <math|B> takes this form:
 
   <\equation*>
     <around*|(|A\<cdot\>B|)><rsub|i,j>=<big|sum><rsub|k>a<rsub|i,k>\<cdot\>b<rsub|k,j>
@@ -321,15 +324,11 @@
     A\<cdot\>B=<matrix|<tformat|<table|<row|<cell|a<rsub|11>>|<cell|a<rsub|12>>>|<row|<cell|a<rsub|21>>|<cell|a<rsub|22>>>>>><matrix|<tformat|<table|<row|<cell|b<rsub|11>>|<cell|b<rsub|12>>>|<row|<cell|b<rsub|21>>|<cell|b<rsub|22>>>>>>=<matrix|<tformat|<table|<row|<cell|a<rsub|11>*b<rsub|11>+a<rsub|12>*b<rsub|21>>|<cell|a<rsub|11>*b<rsub|12>+a<rsub|12>*b<rsub|22>>>|<row|<cell|a<rsub|21>*b<rsub|11>+a<rsub|21>*b<rsub|21>>|<cell|a<rsub|21>*b<rsub|12>+a<rsub|22>*b<rsub|22>>>>>>
   </equation*>
 
-  The exponential of a matrix <math|A> can be defined by:
+  The exponential of a matrix <math|A> is then given by:
 
   <\equation*>
     exp<around*|(|A|)>=<big|sum><rsub|n=1><rsup|\<infty\>><frac|1|n!>A<rsup|n>
   </equation*>
-
-  <\question>
-    Go to the Julia notebook and finish it!
-  </question>
 
   Things to note:\ 
 
@@ -337,10 +336,17 @@
     <item>The eigenvectors of the exponentiated matrix and the original
     hermitian matrix are the same. (Why?)
 
-    <item>In general, does the identity <math|exp<around*|(|A+
-    B|)>=exp<around*|(|A|)>exp<around*|(|B|)>> hold for matrices? Prove or
-    disprove the statement.\ 
+    <item>For some matrices, the matrix exponential does not exist; However,
+    for hermitian matrices, it always exists.\ 
+
+    <item>In general, the identity <math|exp<around*|(|A+
+    B|)>=exp<around*|(|A|)>exp<around*|(|B|)>> for matrices <math|A,B> does
+    NOT hold for matrix exponentials.\ 
   </enumerate-numeric>
+
+  <\question>
+    Go to the Julia notebook and finish it!
+  </question>
 </body>
 
 <\initial>
